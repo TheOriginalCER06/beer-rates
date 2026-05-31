@@ -47,7 +47,7 @@ export const STYLES_BY_CATEGORY = {
     'Belgian Tripel', 'Belgian Dubbel', 'Saison',
     'Amber Ale', 'Red Ale', 'Irish Red',
     'Bock', 'Doppelbock', 'Barleywine',
-    'Session Beer', 'Fruit Beer', 'Other',
+    'Session Beer', 'Fruit Beer', 'Ginger Beer', 'Other',
   ],
   Wine: [
     'Red Wine', 'White Wine', 'Rosé',
