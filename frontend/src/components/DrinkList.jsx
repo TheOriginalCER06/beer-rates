@@ -1,0 +1,155 @@
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../AuthContext'
+import { CATEGORIES, STYLES_BY_CATEGORY } from '../constants'
+import DrinkCard from './DrinkCard'
+import Box from '@mui/material/Box'
+import Typography from '@mui/material/Typography'
+import Button from '@mui/material/Button'
+import TextField from '@mui/material/TextField'
+import MenuItem from '@mui/material/MenuItem'
+import Paper from '@mui/material/Paper'
+import Stack from '@mui/material/Stack'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
+import ToggleButton from '@mui/material/ToggleButton'
+import Fab from '@mui/material/Fab'
+import Skeleton from '@mui/material/Skeleton'
+import InputAdornment from '@mui/material/InputAdornment'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTheme } from '@mui/material/styles'
+import AddRounded from '@mui/icons-material/AddRounded'
+import SearchRounded from '@mui/icons-material/SearchRounded'
+
+function CardSkeleton() {
+  return (
+    <Paper sx={{ display: 'flex', overflow: 'hidden', borderRadius: 3 }}>
+      <Skeleton variant="rectangular" width={88} height={88} sx={{ flexShrink: 0, borderRadius: 0 }} />
+      <Box sx={{ p: 1.5, flex: 1 }}>
+        <Skeleton variant="text" width="60%" height={20} />
+        <Skeleton variant="text" width="40%" height={16} sx={{ mt: 0.5 }} />
+        <Skeleton variant="rounded" width={80} height={20} sx={{ mt: 1 }} />
+      </Box>
+    </Paper>
+  )
+}
+
+export default function DrinkList() {
+  const { user }                = useAuth()
+  const canCreateDrinks         = Boolean(user && user.role !== 'viewer')
+  const theme                   = useTheme()
+  const mobile                  = useMediaQuery(theme.breakpoints.down('sm'))
+  const [drinks, setDrinks]     = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [search, setSearch]     = useState('')
+  const [category, setCategory] = useState('')
+  const [style, setStyle]       = useState('')
+  const [sort, setSort]         = useState('created_at')
+  const [order, setOrder]       = useState('desc')
+
+  useEffect(() => { setStyle('') }, [category])
+
+  useEffect(() => {
+    setLoading(true)
+    const p = new URLSearchParams({ sort, order })
+    if (search)   p.set('search',   search)
+    if (category) p.set('category', category)
+    if (style)    p.set('style',    style)
+    fetch(`/api/drinks?${p}`)
+      .then(async (r) => {
+        if (!r.ok) return []
+        const data = await r.json()
+        return Array.isArray(data) ? data : []
+      })
+      .then(setDrinks)
+      .catch(() => setDrinks([]))
+      .finally(() => setLoading(false))
+  }, [search, category, style, sort, order])
+
+  const styles = category ? (STYLES_BY_CATEGORY[category] || []) : []
+
+  return (
+    <Box>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Typography variant="h5" fontWeight={700}>All Drinks</Typography>
+        {canCreateDrinks && !mobile && (
+          <Button component={Link} to="/add" variant="contained" startIcon={<AddRounded />} sx={{ borderRadius: 3 }}>
+            Add Drink
+          </Button>
+        )}
+      </Box>
+
+      {/* Category tabs */}
+      <Box sx={{ mb: 2, overflowX: 'auto', pb: 0.5 }}>
+        <ToggleButtonGroup value={category} exclusive onChange={(_, v) => setCategory(v ?? '')} size="small">
+          <ToggleButton value="">All</ToggleButton>
+          {CATEGORIES.map(c => (
+            <ToggleButton key={c} value={c}>{c}</ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+      </Box>
+
+      {/* Filters */}
+      <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+          <TextField
+            placeholder="Search name, brewery, notes…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            size="small"
+            sx={{ flex: 2 }}
+            InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" sx={{ color: 'text.disabled' }} /></InputAdornment> }}
+          />
+          <TextField select label="Style" value={style} onChange={e => setStyle(e.target.value)}
+            size="small" disabled={!category} sx={{ flex: 1.5 }}>
+            <MenuItem value="">{category ? 'All styles' : 'Select category first'}</MenuItem>
+            {styles.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+          </TextField>
+          <TextField select label="Sort by" value={sort} onChange={e => setSort(e.target.value)} size="small" sx={{ flex: 1 }}>
+            <MenuItem value="created_at">Date Added</MenuItem>
+            <MenuItem value="date_tried">Date Tried</MenuItem>
+            <MenuItem value="rating">Rating</MenuItem>
+            <MenuItem value="name">Name A–Z</MenuItem>
+          </TextField>
+          <TextField select label="Order" value={order} onChange={e => setOrder(e.target.value)} size="small" sx={{ flex: 1 }}>
+            <MenuItem value="desc">Newest / Highest</MenuItem>
+            <MenuItem value="asc">Oldest / Lowest</MenuItem>
+          </TextField>
+        </Stack>
+      </Paper>
+
+      {/* Results */}
+      {loading ? (
+        <Stack spacing={1.5}>
+          {[1, 2, 3].map(i => <CardSkeleton key={i} />)}
+        </Stack>
+      ) : drinks.length === 0 ? (
+        <Box sx={{ textAlign: 'center', py: 10 }}>
+          <Typography sx={{ fontSize: 48, opacity: 0.2 }}>🍺</Typography>
+          <Typography color="text.secondary" mt={1}>No drinks found.</Typography>
+          {canCreateDrinks && (
+            <Button component={Link} to="/add" variant="outlined" sx={{ mt: 2 }}>
+              Log your first drink
+            </Button>
+          )}
+        </Box>
+      ) : (
+        <>
+          <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 1.5 }}>
+            {drinks.length} drink{drinks.length !== 1 ? 's' : ''}
+          </Typography>
+          <Stack spacing={1.5}>
+            {drinks.map(d => <DrinkCard key={d.id} drink={d} />)}
+          </Stack>
+        </>
+      )}
+
+      {/* Mobile FAB */}
+      {canCreateDrinks && mobile && (
+        <Fab component={Link} to="/add" sx={{ position: 'fixed', bottom: 20, right: 20 }}>
+          <AddRounded />
+        </Fab>
+      )}
+    </Box>
+  )
+}
