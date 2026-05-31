@@ -17,7 +17,7 @@ die() {
 
 usage() {
   cat <<EOF
-Beer Rates Proxmox/LXC setup script
+Beer Rates Proxmox/LXC setup script (Alpine Linux)
 
 Usage:
   $(basename "$0") --repo <git-url> [options]
@@ -35,6 +35,20 @@ Examples:
   $(basename "$0") --repo https://github.com/you/beer-rates.git
   $(basename "$0") --repo git@github.com:you/beer-rates.git --branch main
 EOF
+}
+
+require_alpine() {
+  command -v apk >/dev/null 2>&1 || die "This setup script is for Alpine Linux CTs (apk not found)."
+}
+
+ensure_openrc_service() {
+  local svc="$1"
+  if command -v rc-update >/dev/null 2>&1; then
+    rc-update add "$svc" default >/dev/null 2>&1 || true
+  fi
+  if command -v rc-service >/dev/null 2>&1; then
+    rc-service "$svc" start >/dev/null 2>&1 || true
+  fi
 }
 
 while [[ $# -gt 0 ]]; do
@@ -70,19 +84,13 @@ if [[ "$EUID" -ne 0 ]]; then
   die "Please run as root inside the CT (needed for package installation and service setup)."
 fi
 
-log "Updating package lists and installing prerequisites"
-export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get install -y ca-certificates curl git
+require_alpine
 
-if ! command -v docker >/dev/null 2>&1; then
-  log "Installing Docker"
-  curl -fsSL https://get.docker.com | sh
-fi
+log "Installing prerequisites and Docker (Alpine apk)"
+apk add --no-cache ca-certificates curl git docker docker-cli-compose util-linux
 
-if command -v systemctl >/dev/null 2>&1; then
-  systemctl enable --now docker || true
-fi
+log "Ensuring Docker service is enabled and started"
+ensure_openrc_service docker
 
 mkdir -p "$(dirname "$APP_DIR")"
 

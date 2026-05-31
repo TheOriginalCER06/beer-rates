@@ -19,7 +19,7 @@ die() {
 
 usage() {
   cat <<EOF
-Install Beer Rates weekly auto-update cron job
+Install Beer Rates weekly auto-update cron job (Alpine Linux)
 
 Usage:
   $(basename "$0") [options]
@@ -77,24 +77,27 @@ if [[ "$EUID" -ne 0 ]]; then
   die "Please run as root (required for cron installation and CT upgrades)."
 fi
 
+command -v apk >/dev/null 2>&1 || die "This installer is Alpine-only (apk not found)."
+
 [[ -d "$APP_DIR" ]] || die "App directory does not exist: $APP_DIR"
 [[ -f "$APP_DIR/scripts/weekly-auto-update.sh" ]] || die "Missing script: $APP_DIR/scripts/weekly-auto-update.sh"
 
 chmod +x "$APP_DIR/scripts/weekly-auto-update.sh" "$APP_DIR/scripts/proxmox-update.sh" || true
 
 if ! command -v crontab >/dev/null 2>&1; then
-  if command -v apt-get >/dev/null 2>&1; then
-    log "Installing cron package"
-    export DEBIAN_FRONTEND=noninteractive
-    apt-get update
-    apt-get install -y cron
-  else
-    die "crontab not found and apt-get unavailable to install cron"
-  fi
+  log "Installing cron tools"
+  apk add --no-cache dcron
 fi
 
-if command -v systemctl >/dev/null 2>&1; then
-  systemctl enable --now cron || true
+if ! command -v crontab >/dev/null 2>&1; then
+  die "crontab is still unavailable after installing dcron"
+fi
+
+if command -v rc-update >/dev/null 2>&1; then
+  rc-update add crond default >/dev/null 2>&1 || true
+fi
+if command -v rc-service >/dev/null 2>&1; then
+  rc-service crond start >/dev/null 2>&1 || true
 fi
 
 mkdir -p "$(dirname "$LOG_FILE")"

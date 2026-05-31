@@ -66,18 +66,19 @@ docker exec beerrates-app-1 cat /app/data/admin-password.txt
 ### Recommended setup
 
 ```
-Proxmox LXC (Debian/Ubuntu)
+Proxmox LXC (Alpine Linux)
   └── Docker
         └── beerrates container  :3000
   └── Nginx  (reverse proxy, SSL termination)  :443 → :3000
 ```
 
-### 1. Create the LXC and install Docker
+### 1. Create the LXC and install Docker (Alpine)
 
 ```bash
 # Inside the LXC container
-curl -fsSL https://get.docker.com | sh
-systemctl enable --now docker
+apk add --no-cache docker docker-cli-compose git curl ca-certificates
+rc-update add docker default
+rc-service docker start
 ```
 
 ### 2. Clone and start the app
@@ -143,7 +144,7 @@ For a first-time install inside a new Proxmox LXC container, use:
 
 This script will:
 
-- install prerequisites (`curl`, `git`, Docker),
+- install Alpine prerequisites (`curl`, `git`, Docker, Compose plugin),
 - clone your repository to `/opt/beer-rates` (or custom path),
 - deploy/redeploy the app using `scripts/proxmox-update.sh`.
 
@@ -236,7 +237,7 @@ It adds a weekly cron job that runs:
 
 The weekly job does both:
 
-- upgrades the **Proxmox CT OS packages** (`apt update` + `dist-upgrade` + cleanup),
+- upgrades the **Proxmox CT OS packages** (`apk update` + `apk upgrade` + cache cleanup),
 - updates and redeploys Beer Rates via `scripts/proxmox-update.sh`.
 
 ### Install weekly cron job
@@ -244,7 +245,7 @@ The weekly job does both:
 ```bash
 cd /opt/beer-rates
 chmod +x scripts/*.sh
-sudo ./scripts/install-weekly-auto-update.sh --app-dir /opt/beer-rates --branch main
+./scripts/install-weekly-auto-update.sh --app-dir /opt/beer-rates --branch main
 ```
 
 Default schedule: **Sunday 04:30** (`30 4 * * 0`).
@@ -252,13 +253,13 @@ Default schedule: **Sunday 04:30** (`30 4 * * 0`).
 ### Custom schedule example
 
 ```bash
-sudo ./scripts/install-weekly-auto-update.sh --cron "0 3 * * 6"
+./scripts/install-weekly-auto-update.sh --cron "0 3 * * 6"
 ```
 
 ### Check logs
 
 ```bash
-sudo tail -f /var/log/beerrates-weekly-update.log
+tail -f /var/log/beerrates-weekly-update.log
 ```
 
 ---
