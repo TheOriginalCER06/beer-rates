@@ -151,7 +151,7 @@ This script will:
 
 ```bash
 chmod +x scripts/proxmox-setup.sh
-./scripts/proxmox-setup.sh --repo https://github.com/your-user/beer-rates.git --branch main
+./scripts/proxmox-setup.sh --repo https://github.com/TheOriginalCER06/beer-rates.git --branch main
 ```
 
 ---
