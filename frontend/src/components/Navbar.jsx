@@ -126,7 +126,7 @@ export default function Navbar() {
 
           <Typography component={Link} to="/" variant="h6"
             sx={{ fontWeight: 800, color: 'primary.main', textDecoration: 'none', flexShrink: 0, letterSpacing: '-0.02em' }}>
-            🍺 Beer Rates
+            Drikke vurderinger
           </Typography>
 
           {!mobile && (
