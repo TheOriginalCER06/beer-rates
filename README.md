@@ -142,6 +142,8 @@ For a first-time install inside a new Proxmox LXC container, use:
 
 `scripts/proxmox-setup.sh`
 
+All maintenance scripts are written for POSIX `sh` on Alpine (no Bash required).
+
 This script will:
 
 - install Alpine prerequisites (`curl`, `git`, Docker, Compose plugin),
@@ -152,7 +154,7 @@ This script will:
 
 ```bash
 chmod +x scripts/proxmox-setup.sh
-./scripts/proxmox-setup.sh --repo https://github.com/TheOriginalCER06/beer-rates.git --branch main
+sh ./scripts/proxmox-setup.sh --repo https://github.com/TheOriginalCER06/beer-rates.git --branch main
 ```
 
 ---
@@ -200,20 +202,20 @@ chmod +x scripts/proxmox-update.sh
 
 ```bash
 cd /opt/beer-rates
-./scripts/proxmox-update.sh
+sh ./scripts/proxmox-update.sh
 ```
 
 ### Useful options
 
 ```bash
 # Update from a specific branch
-./scripts/proxmox-update.sh --branch main
+sh ./scripts/proxmox-update.sh --branch main
 
 # Restart without pulling new git commits
-./scripts/proxmox-update.sh --no-pull
+sh ./scripts/proxmox-update.sh --no-pull
 
 # Pull latest code, but skip rebuild
-./scripts/proxmox-update.sh --no-build
+sh ./scripts/proxmox-update.sh --no-build
 ```
 
 The script automatically:
@@ -245,7 +247,7 @@ The weekly job does both:
 ```bash
 cd /opt/beer-rates
 chmod +x scripts/*.sh
-./scripts/install-weekly-auto-update.sh --app-dir /opt/beer-rates --branch main
+sh ./scripts/install-weekly-auto-update.sh --app-dir /opt/beer-rates --branch main
 ```
 
 Default schedule: **Sunday 04:30** (`30 4 * * 0`).
@@ -253,7 +255,7 @@ Default schedule: **Sunday 04:30** (`30 4 * * 0`).
 ### Custom schedule example
 
 ```bash
-./scripts/install-weekly-auto-update.sh --cron "0 3 * * 6"
+sh ./scripts/install-weekly-auto-update.sh --cron "0 3 * * 6"
 ```
 
 ### Check logs

@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-set -Eeuo pipefail
+set -eu
 
 REPO_URL="${REPO_URL:-}"
 APP_DIR="${APP_DIR:-/opt/beer-rates}"
@@ -42,7 +42,7 @@ require_alpine() {
 }
 
 ensure_openrc_service() {
-  local svc="$1"
+  svc="$1"
   if command -v rc-update >/dev/null 2>&1; then
     rc-update add "$svc" default >/dev/null 2>&1 || true
   fi
@@ -51,20 +51,20 @@ ensure_openrc_service() {
   fi
 }
 
-while [[ $# -gt 0 ]]; do
+while [ "$#" -gt 0 ]; do
   case "$1" in
     --repo)
-      [[ $# -ge 2 ]] || die "--repo requires a value"
+      [ "$#" -ge 2 ] || die "--repo requires a value"
       REPO_URL="$2"
       shift 2
       ;;
     --app-dir)
-      [[ $# -ge 2 ]] || die "--app-dir requires a value"
+      [ "$#" -ge 2 ] || die "--app-dir requires a value"
       APP_DIR="$2"
       shift 2
       ;;
     --branch)
-      [[ $# -ge 2 ]] || die "--branch requires a value"
+      [ "$#" -ge 2 ] || die "--branch requires a value"
       BRANCH="$2"
       shift 2
       ;;
@@ -78,9 +78,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -n "$REPO_URL" ]] || die "Missing required --repo <git-url>"
+[ -n "$REPO_URL" ] || die "Missing required --repo <git-url>"
 
-if [[ "$EUID" -ne 0 ]]; then
+if [ "$(id -u)" -ne 0 ]; then
   die "Please run as root inside the CT (needed for package installation and service setup)."
 fi
 
@@ -94,14 +94,14 @@ ensure_openrc_service docker
 
 mkdir -p "$(dirname "$APP_DIR")"
 
-if [[ -d "$APP_DIR/.git" ]]; then
+if [ -d "$APP_DIR/.git" ]; then
   log "Repository already exists at $APP_DIR — updating"
   cd "$APP_DIR"
   git fetch --prune origin
   git checkout "$BRANCH"
   git pull --ff-only origin "$BRANCH"
 else
-  if [[ -d "$APP_DIR" ]] && [[ -n "$(ls -A "$APP_DIR" 2>/dev/null || true)" ]]; then
+  if [ -d "$APP_DIR" ] && [ -n "$(ls -A "$APP_DIR" 2>/dev/null || true)" ]; then
     die "Target directory exists and is not empty: $APP_DIR"
   fi
   log "Cloning repository to $APP_DIR"
@@ -109,8 +109,8 @@ else
   cd "$APP_DIR"
 fi
 
-[[ -f "$APP_DIR/scripts/proxmox-update.sh" ]] || die "Missing scripts/proxmox-update.sh in repository"
-chmod +x "$APP_DIR/scripts"/*.sh || true
+[ -f "$APP_DIR/scripts/proxmox-update.sh" ] || die "Missing scripts/proxmox-update.sh in repository"
+chmod +x "$APP_DIR"/scripts/*.sh 2>/dev/null || true
 
 log "Deploying Beer Rates container"
 "$APP_DIR/scripts/proxmox-update.sh" --app-dir "$APP_DIR" --branch "$BRANCH"

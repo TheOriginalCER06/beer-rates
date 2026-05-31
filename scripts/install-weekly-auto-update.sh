@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-set -Eeuo pipefail
+set -eu
 
 APP_DIR="${APP_DIR:-/opt/beer-rates}"
 BRANCH="${BRANCH:-main}"
@@ -41,25 +41,25 @@ Examples:
 EOF
 }
 
-while [[ $# -gt 0 ]]; do
+while [ "$#" -gt 0 ]; do
   case "$1" in
     --app-dir)
-      [[ $# -ge 2 ]] || die "--app-dir requires a value"
+      [ "$#" -ge 2 ] || die "--app-dir requires a value"
       APP_DIR="$2"
       shift 2
       ;;
     --branch)
-      [[ $# -ge 2 ]] || die "--branch requires a value"
+      [ "$#" -ge 2 ] || die "--branch requires a value"
       BRANCH="$2"
       shift 2
       ;;
     --cron)
-      [[ $# -ge 2 ]] || die "--cron requires a value"
+      [ "$#" -ge 2 ] || die "--cron requires a value"
       CRON_EXPR="$2"
       shift 2
       ;;
     --log-file)
-      [[ $# -ge 2 ]] || die "--log-file requires a value"
+      [ "$#" -ge 2 ] || die "--log-file requires a value"
       LOG_FILE="$2"
       shift 2
       ;;
@@ -73,14 +73,14 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ "$EUID" -ne 0 ]]; then
+if [ "$(id -u)" -ne 0 ]; then
   die "Please run as root (required for cron installation and CT upgrades)."
 fi
 
 command -v apk >/dev/null 2>&1 || die "This installer is Alpine-only (apk not found)."
 
-[[ -d "$APP_DIR" ]] || die "App directory does not exist: $APP_DIR"
-[[ -f "$APP_DIR/scripts/weekly-auto-update.sh" ]] || die "Missing script: $APP_DIR/scripts/weekly-auto-update.sh"
+[ -d "$APP_DIR" ] || die "App directory does not exist: $APP_DIR"
+[ -f "$APP_DIR/scripts/weekly-auto-update.sh" ] || die "Missing script: $APP_DIR/scripts/weekly-auto-update.sh"
 
 chmod +x "$APP_DIR/scripts/weekly-auto-update.sh" "$APP_DIR/scripts/proxmox-update.sh" || true
 

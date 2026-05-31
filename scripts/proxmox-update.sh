@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-set -Eeuo pipefail
+set -eu
 
 APP_DIR="${APP_DIR:-/opt/beer-rates}"
 BRANCH="${BRANCH:-main}"
@@ -40,15 +40,15 @@ Examples:
 EOF
 }
 
-while [[ $# -gt 0 ]]; do
+while [ "$#" -gt 0 ]; do
   case "$1" in
     --app-dir)
-      [[ $# -ge 2 ]] || die "--app-dir requires a value"
+      [ "$#" -ge 2 ] || die "--app-dir requires a value"
       APP_DIR="$2"
       shift 2
       ;;
     --branch)
-      [[ $# -ge 2 ]] || die "--branch requires a value"
+      [ "$#" -ge 2 ] || die "--branch requires a value"
       BRANCH="$2"
       shift 2
       ;;
@@ -73,27 +73,35 @@ done
 command -v docker >/dev/null 2>&1 || die "docker is not installed"
 
 if docker compose version >/dev/null 2>&1; then
-  COMPOSE_CMD=(docker compose)
+  COMPOSE_IMPL="docker compose"
 elif command -v docker-compose >/dev/null 2>&1; then
-  COMPOSE_CMD=(docker-compose)
+  COMPOSE_IMPL="docker-compose"
 else
   die "Neither 'docker compose' nor 'docker-compose' is available"
 fi
 
-[[ -d "$APP_DIR" ]] || die "App directory does not exist: $APP_DIR"
+compose_cmd() {
+  if [ "$COMPOSE_IMPL" = "docker-compose" ]; then
+    docker-compose "$@"
+  else
+    docker compose "$@"
+  fi
+}
+
+[ -d "$APP_DIR" ] || die "App directory does not exist: $APP_DIR"
 cd "$APP_DIR"
 
-[[ -f "docker-compose.yml" || -f "compose.yml" ]] || die "No docker compose file found in $APP_DIR"
+[ -f "docker-compose.yml" ] || [ -f "compose.yml" ] || die "No docker compose file found in $APP_DIR"
 
-if [[ "$DO_PULL" -eq 1 ]]; then
+if [ "$DO_PULL" -eq 1 ]; then
   command -v git >/dev/null 2>&1 || die "git is not installed"
-  [[ -d ".git" ]] || die "No .git directory in $APP_DIR (cannot pull updates)"
+  [ -d ".git" ] || die "No .git directory in $APP_DIR (cannot pull updates)"
 
   log "Fetching latest code"
   git fetch --prune origin
 
   CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-  if [[ "$CURRENT_BRANCH" != "$BRANCH" ]]; then
+  if [ "$CURRENT_BRANCH" != "$BRANCH" ]; then
     log "Switching branch: $CURRENT_BRANCH -> $BRANCH"
     git checkout "$BRANCH"
   fi
@@ -102,15 +110,15 @@ if [[ "$DO_PULL" -eq 1 ]]; then
   git pull --ff-only origin "$BRANCH"
 fi
 
-if [[ "$DO_BUILD" -eq 1 ]]; then
+if [ "$DO_BUILD" -eq 1 ]; then
   log "Rebuilding and restarting containers"
-  "${COMPOSE_CMD[@]}" up -d --build --remove-orphans
+  compose_cmd up -d --build --remove-orphans
 else
   log "Restarting containers without rebuild"
-  "${COMPOSE_CMD[@]}" up -d --remove-orphans
+  compose_cmd up -d --remove-orphans
 fi
 
 log "Current container status"
-"${COMPOSE_CMD[@]}" ps
+compose_cmd ps
 
 log "Update completed successfully"
