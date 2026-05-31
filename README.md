@@ -135,6 +135,27 @@ docker compose up -d
 
 ---
 
+## Proxmox setup script (fresh CT)
+
+For a first-time install inside a new Proxmox LXC container, use:
+
+`scripts/proxmox-setup.sh`
+
+This script will:
+
+- install prerequisites (`curl`, `git`, Docker),
+- clone your repository to `/opt/beer-rates` (or custom path),
+- deploy/redeploy the app using `scripts/proxmox-update.sh`.
+
+### Example
+
+```bash
+chmod +x scripts/proxmox-setup.sh
+./scripts/proxmox-setup.sh --repo https://github.com/your-user/beer-rates.git --branch main
+```
+
+---
+
 ## Useful Docker commands
 
 ```bash
@@ -155,6 +176,89 @@ docker compose down -v
 
 # Health check
 docker compose ps
+```
+
+---
+
+## Proxmox one-command update script
+
+This repository includes a script that updates code and redeploys the app on your Proxmox LXC host.
+
+Script path:
+
+`scripts/proxmox-update.sh`
+
+### First-time setup on the server
+
+```bash
+cd /opt/beer-rates
+chmod +x scripts/proxmox-update.sh
+```
+
+### Run update
+
+```bash
+cd /opt/beer-rates
+./scripts/proxmox-update.sh
+```
+
+### Useful options
+
+```bash
+# Update from a specific branch
+./scripts/proxmox-update.sh --branch main
+
+# Restart without pulling new git commits
+./scripts/proxmox-update.sh --no-pull
+
+# Pull latest code, but skip rebuild
+./scripts/proxmox-update.sh --no-build
+```
+
+The script automatically:
+
+- verifies required tools (`docker`, compose, and `git` when pulling),
+- pulls latest code with fast-forward safety,
+- rebuilds and restarts containers,
+- prints final container status.
+
+---
+
+## Weekly auto-update (CT upgrade + app update)
+
+Use the cron installer script to run weekly maintenance automatically:
+
+`scripts/install-weekly-auto-update.sh`
+
+It adds a weekly cron job that runs:
+
+`scripts/weekly-auto-update.sh`
+
+The weekly job does both:
+
+- upgrades the **Proxmox CT OS packages** (`apt update` + `dist-upgrade` + cleanup),
+- updates and redeploys Beer Rates via `scripts/proxmox-update.sh`.
+
+### Install weekly cron job
+
+```bash
+cd /opt/beer-rates
+chmod +x scripts/*.sh
+sudo ./scripts/install-weekly-auto-update.sh --app-dir /opt/beer-rates --branch main
+```
+
+Default schedule: **Sunday 04:30** (`30 4 * * 0`).
+
+### Custom schedule example
+
+```bash
+sudo ./scripts/install-weekly-auto-update.sh --cron "0 3 * * 6"
+```
+
+### Check logs
+
+```bash
+sudo tail -f /var/log/beerrates-weekly-update.log
 ```
 
 ---
@@ -354,6 +458,11 @@ beer-rates/
 │   └── package.json
 ├── Dockerfile                     # Multi-stage: Vite build → Node Alpine
 ├── docker-compose.yml
+├── scripts/
+│   ├── proxmox-setup.sh          # First-time Proxmox/LXC bootstrap + deploy helper
+│   ├── proxmox-update.sh         # App update helper (git pull + compose up)
+│   ├── weekly-auto-update.sh     # Weekly CT upgrade + app update runner
+│   └── install-weekly-auto-update.sh # Installs weekly cron job for auto-updates
 ├── .dockerignore
 └── .gitignore
 ```
