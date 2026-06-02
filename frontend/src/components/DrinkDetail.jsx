@@ -64,6 +64,7 @@ export default function DrinkDetail() {
   const info  = [
     { label: 'Brewery / Producer', value: drink.brewery },
     { label: 'Style / Type',       value: drink.style },
+    { label: 'Served As',          value: drink.container },
     { label: 'ABV',                value: drink.abv != null ? `${drink.abv}%` : null },
     { label: 'Country / Region',   value: drink.country },
     { label: 'Date Tried',         value: drink.date_tried ? new Date(drink.date_tried + 'T00:00:00').toLocaleDateString() : null },

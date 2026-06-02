@@ -150,15 +150,57 @@ export async function detectDrink(canvas) {
 }
 
 /**
+ * Pre-process a canvas for OCR: grayscale + contrast stretch, and upscale small
+ * label crops so glyphs are big enough for Tesseract. Bottle labels have low
+ * contrast and small text, so this markedly improves recognition.
+ */
+function preprocessForOcr(canvas, { minWidth = 1100, maxWidth = 1600 } = {}) {
+  // Upscale narrow crops, cap very wide ones
+  let targetW = canvas.width
+  if (targetW < minWidth) targetW = minWidth
+  if (targetW > maxWidth) targetW = maxWidth
+  const scale = targetW / canvas.width
+
+  const out = document.createElement('canvas')
+  out.width = Math.round(canvas.width * scale)
+  out.height = Math.round(canvas.height * scale)
+  const ctx = out.getContext('2d')
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(canvas, 0, 0, out.width, out.height)
+
+  const img = ctx.getImageData(0, 0, out.width, out.height)
+  const d = img.data
+  // First pass: grayscale + collect min/max for contrast stretch
+  let lo = 255, hi = 0
+  const gray = new Uint8ClampedArray(d.length / 4)
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+    const g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]
+    gray[p] = g
+    if (g < lo) lo = g
+    if (g > hi) hi = g
+  }
+  const range = Math.max(1, hi - lo)
+  // Second pass: stretch contrast and write back
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+    const v = ((gray[p] - lo) / range) * 255
+    d[i] = d[i + 1] = d[i + 2] = v
+  }
+  ctx.putImageData(img, 0, 0)
+  return out
+}
+
+/**
  * Extract text from image using OCR and parse out name, brand, ABV, country.
  */
 export async function detectTextAndABV(canvas) {
   const empty = { text: '', name: null, brand: null, abv: null, country: null }
   try {
-    // OCR is the slow step; a ~1000px input keeps it fast without losing label text.
-    const { canvas: small } = downscaleCanvas(canvas, 1000)
+    const prepped = preprocessForOcr(canvas)
     const worker = await createWorker('eng')
-    const result = await worker.recognize(small)
+    // PSM 6 = assume a single uniform block of text (good for labels);
+    // 4 (column) is a decent alternative. Keep the full charset for brand names.
+    await worker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' })
+    const result = await worker.recognize(prepped)
     const text = result.data.text || ''
     await worker.terminate()
 

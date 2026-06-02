@@ -37,7 +37,19 @@ const migrate = (sql) => { try { db.exec(sql); } catch (_) {} };
 migrate(`ALTER TABLE beers ADD COLUMN category   TEXT NOT NULL DEFAULT 'Beer'`);
 migrate(`ALTER TABLE beers ADD COLUMN photo_path TEXT`);
 migrate(`ALTER TABLE beers ADD COLUMN created_by INTEGER`);
+migrate(`ALTER TABLE beers ADD COLUMN container  TEXT`);   // Bottle / Can / Draft / …
 migrate(`CREATE INDEX IF NOT EXISTS idx_beers_created_by ON beers(created_by)`);
+
+// ── External look-up cache ────────────────────────────────────────────────────
+// Persisted so repeat searches (OpenBreweryDB / TheCocktailDB / GrapeMinds / OFF)
+// cost zero API requests until the TTL expires.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS lookup_cache (
+    key        TEXT PRIMARY KEY,
+    body       TEXT NOT NULL,
+    expires_at INTEGER NOT NULL
+  )
+`);
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 db.exec(`
@@ -58,6 +70,10 @@ db.exec(`
   )
 `);
 db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('public_view','false')").run();
+// Online drink-database look-ups — enabled by default, admin-toggleable
+for (const k of ['lookup_enabled', 'lookup_openbrewerydb', 'lookup_thecocktaildb', 'lookup_openfoodfacts', 'lookup_vivino']) {
+  db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)').run(k, 'true');
+}
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS sessions (

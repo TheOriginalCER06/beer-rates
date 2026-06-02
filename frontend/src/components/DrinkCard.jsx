@@ -12,7 +12,7 @@ import { CATEGORY_ICON, CATEGORY_COLOR } from '../constants'
 
 export default function DrinkCard({ drink, showCreator = false }) {
   const cat   = CATEGORY_COLOR[drink.category] || CATEGORY_COLOR.Other
-  const meta  = [drink.brewery, drink.style, drink.abv ? `${drink.abv}%` : null].filter(Boolean).join(' · ')
+  const meta  = [drink.brewery, drink.style, drink.abv ? `${drink.abv}%` : null, drink.container].filter(Boolean).join(' · ')
 
   return (
     <Card>

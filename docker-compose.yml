@@ -6,6 +6,8 @@ services:
     volumes:
       - drink_data:/app/data
     restart: unless-stopped
+    # No external API keys are needed — every drink database used is open or uses
+    # a fixed public endpoint. Providers are toggled in-app (Settings), not here.
     environment:
       - NODE_ENV=production
       - PORT=3000

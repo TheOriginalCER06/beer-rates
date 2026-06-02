@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom'
-import { CATEGORIES, STYLES_BY_CATEGORY } from '../constants'
+import { CATEGORIES, STYLES_BY_CATEGORY, CONTAINERS, CONTAINER_CATEGORIES } from '../constants'
 import { loadOrientedCanvas, cropToAspect, canvasToBlob, DEFAULT_TARGET_RATIO } from '../utils/imageCompress'
 import { useAiSettings, setAiSetting } from '../utils/aiSettings'
 import RatingPicker from './RatingPicker'
+import DrinkLookup from './DrinkLookup'
 import Box from '@mui/material/Box'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
@@ -46,12 +47,13 @@ export default function DrinkForm() {
   const fileRef        = useRef()
 
   const empty = { name: '', brewery: '', style: '', abv: '', country: '', category: 'Beer',
-    rating: null, comment: '', location: '', date_tried: sp.get('date') || today(), would_buy_again: false }
+    rating: null, comment: '', location: '', date_tried: sp.get('date') || today(), would_buy_again: false, container: '' }
 
   const ai                      = useAiSettings()
   const [form, setForm]         = useState(empty)
   const [photoFile, setPhoto]   = useState(null)
   const [photoPreview, setPrev] = useState(null)
+  const [photoUrl, setPhotoUrl] = useState(null)       // external image to import on save
   const [removePhoto, setRm]    = useState(false)
   const [error, setError]       = useState('')
   const [saving, setSaving]     = useState(false)
@@ -88,6 +90,34 @@ export default function DrinkForm() {
 
   const set = (field, val) =>
     setForm(f => ({ ...f, [field]: val, ...(field === 'category' ? { style: '' } : {}) }))
+
+  // Apply a chosen external look-up result. This is an explicit action, so we
+  // overwrite fields that the result provides (keeping anything it doesn't).
+  const handlePick = (r) => {
+    setForm(prev => {
+      const next = { ...prev }
+      if (r.name)    next.name = r.name
+      if (r.brewery) next.brewery = r.brewery
+      if (r.country) next.country = r.country
+      if (r.abv != null && r.abv !== '') next.abv = String(r.abv)
+      if (r.category && CATEGORIES.includes(r.category)) {
+        if (r.category !== next.category) next.style = ''
+        next.category = r.category
+      }
+      // Only set style if it matches the category's known list, else stash in notes
+      if (r.style) {
+        const allowed = STYLES_BY_CATEGORY[next.category] || []
+        if (allowed.includes(r.style)) next.style = r.style
+      }
+      return next
+    })
+    // Offer the result's image as the photo (imported server-side on save)
+    if (r.thumbnail && !photoFile) {
+      setPhotoUrl(r.thumbnail)
+      setPrev(r.thumbnail)
+      setRm(false)
+    }
+  }
 
   // Fill only empty fields so we never clobber what the user typed.
   const applyAutofill = (det) => {
@@ -128,7 +158,7 @@ export default function DrinkForm() {
       // 2. Immediate centre-cropped preview so the user sees something right away
       const centre = ai.autoEnhance ? cropToAspect(base, { targetRatio: DEFAULT_TARGET_RATIO }) : base
       let blob = await canvasToBlob(centre)
-      setPhoto(blob); setRm(false); showPreview(blob)
+      setPhoto(blob); setPhotoUrl(null); setRm(false); showPreview(blob)
 
       // 3. Detection (drink localisation, quality, OCR) if enabled
       if (ai.smartDetection || ai.qualityWarnings) {
@@ -164,7 +194,7 @@ export default function DrinkForm() {
   }
 
   const clearPhoto = () => {
-    setPhoto(null); setPrev(null)
+    setPhoto(null); setPrev(null); setPhotoUrl(null)
     if (form.photo_path) setRm(true)
     if (fileRef.current) fileRef.current.value = ''
   }
@@ -184,6 +214,12 @@ export default function DrinkForm() {
       if (photoFile) {
         const fd = new FormData(); fd.append('photo', photoFile, 'photo.jpg')
         await fetch(`/api/drinks/${saved.id}/photo`, { method: 'POST', body: fd })
+      } else if (photoUrl) {
+        // Import the chosen look-up image server-side (handles CORS + storage)
+        await fetch(`/api/drinks/${saved.id}/photo-url`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: photoUrl }),
+        })
       } else if (removePhoto && isEdit) {
         await fetch(`/api/drinks/${id}/photo`, { method: 'DELETE' })
       }
@@ -215,6 +251,9 @@ export default function DrinkForm() {
             </Box>
 
             <Divider />
+
+            {/* Online look-up */}
+            <DrinkLookup category={form.category} onPick={handlePick} />
 
             {/* Core fields */}
             <Box>
@@ -250,6 +289,18 @@ export default function DrinkForm() {
               <TextField fullWidth label="Country / Region"
                 value={form.country} onChange={e => set('country', e.target.value)} />
             </Stack>
+
+            {/* Container / serving type — only for relevant categories */}
+            {CONTAINER_CATEGORIES.includes(form.category) && (
+              <Box>
+                <Typography sx={SECTION} mb={1}>Served as</Typography>
+                <ToggleButtonGroup value={form.container || ''} exclusive size="small"
+                  onChange={(_, v) => set('container', v || '')}
+                  sx={{ flexWrap: 'wrap', gap: 0.75 }}>
+                  {CONTAINERS.map(c => <ToggleButton key={c} value={c}>{c}</ToggleButton>)}
+                </ToggleButtonGroup>
+              </Box>
+            )}
 
             <Divider />
 

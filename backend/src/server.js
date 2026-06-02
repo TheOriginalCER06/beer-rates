@@ -10,6 +10,7 @@ const photoDir  = db.photoDir;
 const drinksRouter   = require('./routes/drinks');
 const authRouter     = require('./routes/auth');
 const settingsRouter = require('./routes/settings');
+const lookupRouter   = require('./routes/lookup');
 const { requireView, requireLogin } = require('./middleware/auth');
 
 const app  = express();
@@ -30,18 +31,28 @@ const AI_MODEL_HOSTS = [
   'https://tessdata.projectnaftali.com', // tesseract language training data
   'https://unpkg.com',                   // fallback CDN
 ];
+// Google Fonts (Inter) loaded by index.html
+const FONT_HOSTS   = ['https://fonts.googleapis.com', 'https://fonts.gstatic.com'];
+// Cloudflare web-analytics beacon (injected when served behind Cloudflare)
+const CF_HOSTS     = ['https://static.cloudflareinsights.com', 'https://cloudflareinsights.com'];
+// Remote thumbnail hosts shown in drink-lookup search results
+const LOOKUP_IMG_HOSTS = [
+  'https://www.thecocktaildb.com',
+  'https://images.openfoodfacts.org',
+  'https://images.vivino.com',
+];
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:    ["'self'"],
       // 'wasm-unsafe-eval' lets the WebAssembly backends (TF/Tesseract) instantiate;
       // blob: + jsDelivr let the Tesseract worker script load.
-      scriptSrc:     ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", "blob:", 'https://cdn.jsdelivr.net'],
-      styleSrc:      ["'self'", "'unsafe-inline'"],
-      imgSrc:        ["'self'", "data:", "blob:"],
-      connectSrc:    ["'self'", "data:", "blob:", ...AI_MODEL_HOSTS],
+      scriptSrc:     ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", "blob:", 'https://cdn.jsdelivr.net', ...CF_HOSTS],
+      styleSrc:      ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      imgSrc:        ["'self'", "data:", "blob:", ...LOOKUP_IMG_HOSTS],
+      connectSrc:    ["'self'", "data:", "blob:", ...AI_MODEL_HOSTS, ...CF_HOSTS],
       workerSrc:     ["'self'", "blob:"],
-      fontSrc:       ["'self'"],
+      fontSrc:       ["'self'", ...FONT_HOSTS],
       objectSrc:     ["'none'"],
       frameAncestors:["'none'"],
     },
@@ -152,6 +163,7 @@ app.get('/photos/:filename', (req, res) => {
 // ── API routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth',     authRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/lookup',   lookupRouter);
 app.use('/api/drinks', (req, res, next) =>
   req.method === 'GET' ? requireView(req, res, next) : requireLogin(req, res, next),
   drinksRouter

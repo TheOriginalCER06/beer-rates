@@ -322,6 +322,25 @@ Open `http://localhost:5173`. The Vite dev server proxies `/api` and `/photos` r
 | `DATA_DIR` | `/app/data` | Directory for the SQLite database and uploaded photos |
 | `NODE_ENV` | — | Set to `production` by the Dockerfile |
 | `COOKIE_SECURE` | `false` | Set to `true` when the app is accessed over HTTPS |
+| `THECOCKTAILDB_KEY` | `1` | TheCocktailDB key (`1` = free public test key) |
+| `GRAPEMINDS_API_KEY` | — | Wine look-ups (register at grapeminds.de/entwickler); disabled when empty |
+| `OPENFOODFACTS_ENABLED` | `true` | Toggle Open Food Facts product look-ups |
+| `LOOKUP_CACHE_DAYS` | `30` | Days to cache an external look-up result before re-fetching |
+
+These live in a **gitignored `backend/.env`** (loaded via `dotenv` locally and `env_file` in `docker-compose.yml`). See `backend/.env` for setup notes.
+
+---
+
+## External drink databases
+
+Look-ups are proxied through the backend (`/api/lookup`) and **cached in SQLite**, so repeat searches cost zero API requests. On the Add/Edit form, the **"Look up online"** box searches the source matching the selected category and one-click auto-fills name, brewery, style, ABV, country — and imports the product/cocktail image when available.
+
+| Source | Used for | Key needed |
+|---|---|---|
+| [OpenBreweryDB](https://www.openbrewerydb.org/) | Beer — brewery + country | No |
+| [TheCocktailDB](https://www.thecocktaildb.com/api.php) | Cocktails — incl. thumbnails & ingredients | No (free test key `1`) |
+| [Open Food Facts](https://world.openfoodfacts.org/) | Beer / Wine / Other — products + photos | No |
+| [GrapeMinds](https://grapeminds.de/entwickler) | Wine | Yes — set `GRAPEMINDS_API_KEY` |
 
 ---
 
@@ -411,6 +430,14 @@ Returns `{ "YYYY-MM-DD": [ ...drinks ] }`.
 |---|---|---|---|
 | `GET` | `/api/settings` | Admin | Get all settings |
 | `PUT` | `/api/settings` | Admin | Update settings (`public_view: bool`) |
+
+### Look-up (external databases)
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/lookup?category=&q=` | Login | Search external drink DBs (cached); returns normalised results |
+| `GET` | `/api/lookup/providers` | Public | Which sources are active |
+| `POST` | `/api/drinks/:id/photo-url` | Owner / Admin | Import a drink photo from an allowlisted image URL |
 
 ### Photos
 

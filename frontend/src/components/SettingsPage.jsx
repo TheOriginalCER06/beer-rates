@@ -83,6 +83,14 @@ export default function SettingsPage() {
     toast(val ? 'Public view enabled' : 'Public view disabled')
   }
 
+  // Generic boolean setting saver (used by the look-up provider toggles)
+  const saveBool = async (key, val, label) => {
+    setSettings(s => ({ ...s, [key]: val ? 'true' : 'false' }))
+    await fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [key]: val }) })
+    toast(`${label} ${val ? 'enabled' : 'disabled'}`)
+  }
+  const isOn = (key) => settings?.[key] === 'true'
+
   const changeOwnPw = async (e) => {
     e.preventDefault()
     const res = await fetch('/api/auth/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: curPw, newPassword: newPw }) })
@@ -186,12 +194,54 @@ export default function SettingsPage() {
               <Box>
                 <Typography variant="body2" fontWeight={600}>Auto-Rotation & Cropping</Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Fixes photo orientation and crops large images to a 4:3 aspect ratio.
+                  Fixes photo orientation and crops large images to a 9:16 aspect ratio.
                 </Typography>
               </Box>
             }
             sx={{ alignItems: 'flex-start', ml: 0 }}
           />
+        </Stack>
+      </Paper>
+
+      {/* Online drink databases */}
+      <Paper sx={{ p: 3, borderRadius: 3, mb: 2.5 }}>
+        <Typography variant="subtitle1" fontWeight={700} mb={0.5}>Online Drink Databases</Typography>
+        <Typography variant="body2" color="text.secondary" mb={2}>
+          Used by the “Look up online” search on the add/edit form. All are free and need no API key.
+        </Typography>
+
+        {/* Master switch */}
+        <FormControlLabel
+          control={<Switch checked={isOn('lookup_enabled')} onChange={e => saveBool('lookup_enabled', e.target.checked, 'Online look-ups')} color="primary" />}
+          label={
+            <Box>
+              <Typography variant="body2" fontWeight={700}>Enable online look-ups</Typography>
+              <Typography variant="caption" color="text.secondary">Master switch for all sources below</Typography>
+            </Box>
+          }
+          sx={{ alignItems: 'flex-start', ml: 0 }}
+        />
+
+        <Divider sx={{ my: 1.5 }} />
+
+        <Stack spacing={0.5} sx={{ opacity: isOn('lookup_enabled') ? 1 : 0.5, pointerEvents: isOn('lookup_enabled') ? 'auto' : 'none' }}>
+          {[
+            ['lookup_openbrewerydb', 'OpenBreweryDB', 'Beer — breweries & country'],
+            ['lookup_thecocktaildb', 'TheCocktailDB', 'Cocktails — with photos & ingredients'],
+            ['lookup_vivino',        'Vivino',        'Wine — producer, region, vintage, photos'],
+            ['lookup_openfoodfacts', 'Open Food Facts', 'Packaged products — brands & photos'],
+          ].map(([key, name, desc]) => (
+            <FormControlLabel key={key}
+              control={<Switch size="small" checked={isOn(key)} onChange={e => saveBool(key, e.target.checked, name)} color="primary" />}
+              label={
+                <Box>
+                  <Typography variant="body2" fontWeight={600}>{name}</Typography>
+                  <Typography variant="caption" color="text.secondary">{desc}</Typography>
+                </Box>
+              }
+              sx={{ alignItems: 'flex-start', ml: 0 }}
+            />
+          ))}
         </Stack>
       </Paper>
 

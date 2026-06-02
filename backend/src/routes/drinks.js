@@ -118,17 +118,17 @@ router.get('/:id', (req, res) => {
 router.post('/', requireLogin, (req, res) => {
   if (!canCreateDrinks(req)) return res.status(403).json({ error: 'Forbidden' });
 
-  const { name, brewery, style, abv, country, category, rating, comment, location, date_tried, would_buy_again } = req.body;
+  const { name, brewery, style, abv, country, category, rating, comment, location, date_tried, would_buy_again, container } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Name is required' });
   const r = parseInt(rating, 10);
   if (!r || r < 1 || r > 10) return res.status(400).json({ error: 'Rating must be 1–10' });
 
   const result = db.prepare(`
-    INSERT INTO beers (name,brewery,style,abv,country,category,rating,comment,location,date_tried,would_buy_again,created_by)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+    INSERT INTO beers (name,brewery,style,abv,country,category,rating,comment,location,date_tried,would_buy_again,container,created_by)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
   `).run(name.trim(), brewery?.trim()||null, style||null, abv?parseFloat(abv):null,
     country?.trim()||null, category||'Beer', r, comment?.trim()||null,
-    location?.trim()||null, date_tried||new Date().toISOString().split('T')[0], would_buy_again?1:0, req.session.userId);
+    location?.trim()||null, date_tried||new Date().toISOString().split('T')[0], would_buy_again?1:0, container?.trim()||null, req.session.userId);
 
   res.status(201).json(db.prepare('SELECT * FROM beers WHERE id=?').get(result.lastInsertRowid));
 });
@@ -139,16 +139,16 @@ router.put('/:id', requireLogin, (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Not found' });
   if (!canManageDrink(req, existing)) return res.status(403).json({ error: 'Forbidden' });
 
-  const { name, brewery, style, abv, country, category, rating, comment, location, date_tried, would_buy_again } = req.body;
+  const { name, brewery, style, abv, country, category, rating, comment, location, date_tried, would_buy_again, container } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Name is required' });
   const r = parseInt(rating, 10);
   if (!r || r < 1 || r > 10) return res.status(400).json({ error: 'Rating must be 1–10' });
 
-  db.prepare(`UPDATE beers SET name=?,brewery=?,style=?,abv=?,country=?,category=?,rating=?,comment=?,location=?,date_tried=?,would_buy_again=? WHERE id=?`)
+  db.prepare(`UPDATE beers SET name=?,brewery=?,style=?,abv=?,country=?,category=?,rating=?,comment=?,location=?,date_tried=?,would_buy_again=?,container=? WHERE id=?`)
     .run(name.trim(), brewery?.trim()||null, style||null, abv?parseFloat(abv):null,
       country?.trim()||null, category||existing.category||'Beer', r,
       comment?.trim()||null, location?.trim()||null,
-      date_tried||existing.date_tried, would_buy_again?1:0, req.params.id);
+      date_tried||existing.date_tried, would_buy_again?1:0, container?.trim()||null, req.params.id);
 
   res.json(db.prepare('SELECT * FROM beers WHERE id=?').get(req.params.id));
 });
@@ -187,6 +187,45 @@ router.post('/:id/photo', requireLogin, upload.single('photo'), (req, res) => {
   db.prepare('UPDATE beers SET photo_path=? WHERE id=?').run(`/photos/${filename}`, req.params.id);
 
   res.json({ photo_path: `/photos/${filename}` });
+});
+
+// POST /api/drinks/:id/photo-url — import a photo from an external lookup result.
+// Host allowlist prevents this from being used for SSRF against internal targets.
+const PHOTO_URL_HOSTS = new Set([
+  'www.thecocktaildb.com', 'thecocktaildb.com',
+  'images.openfoodfacts.org', 'static.openfoodfacts.org',
+  'images.vivino.com',
+]);
+router.post('/:id/photo-url', requireLogin, async (req, res) => {
+  const existing = db.prepare('SELECT * FROM beers WHERE id=?').get(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Not found' });
+  if (!canManageDrink(req, existing)) return res.status(403).json({ error: 'Forbidden' });
+
+  let url;
+  try { url = new URL(String(req.body?.url || '')); } catch { return res.status(400).json({ error: 'Bad URL' }); }
+  if (url.protocol !== 'https:' || !PHOTO_URL_HOSTS.has(url.hostname))
+    return res.status(400).json({ error: 'URL not allowed' });
+
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return res.status(502).json({ error: 'Could not fetch image' });
+    if (!/^image\//.test(r.headers.get('content-type') || ''))
+      return res.status(415).json({ error: 'Not an image' });
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (buf.length > 8 * 1024 * 1024) return res.status(413).json({ error: 'Image too large' });
+
+    if (existing.photo_path) {
+      const old = path.join(photoDir, path.basename(existing.photo_path));
+      if (fs.existsSync(old)) fs.unlinkSync(old);
+    }
+    const filename = `${req.params.id}.jpg`;
+    fs.writeFileSync(path.join(photoDir, filename), buf);
+    db.prepare('UPDATE beers SET photo_path=? WHERE id=?').run(`/photos/${filename}`, req.params.id);
+    res.json({ photo_path: `/photos/${filename}` });
+  } catch (e) {
+    console.error('photo-url import failed:', e.message);
+    res.status(502).json({ error: 'Image import failed' });
+  }
 });
 
 // DELETE /api/drinks/:id/photo
