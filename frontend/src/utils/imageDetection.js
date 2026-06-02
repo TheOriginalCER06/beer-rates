@@ -1,46 +1,76 @@
-import '@tensorflow/tfjs'  // side-effect: registers the WebGL/CPU backend for coco-ssd
+import * as tf from '@tensorflow/tfjs'
 import * as cocoSsd from '@tensorflow-models/coco-ssd'
 import { createWorker } from 'tesseract.js'
 
 let cocoModel = null
+let cocoLoading = null
 
 /**
- * Load COCO-SSD model once (cached)
+ * Load COCO-SSD once. Initialises a GPU (WebGL) backend when available — falling
+ * back to CPU — before loading, otherwise detection can resolve instantly with
+ * no results. Concurrent callers share one in-flight load.
  */
 async function loadCocoModel() {
-  if (!cocoModel) {
-    cocoModel = await cocoSsd.load()
+  if (cocoModel) return cocoModel
+  if (!cocoLoading) {
+    cocoLoading = (async () => {
+      await tf.ready()
+      try {
+        await tf.setBackend('webgl')
+      } catch { /* no WebGL — fall through */ }
+      if (tf.getBackend() !== 'webgl') {
+        try { await tf.setBackend('cpu') } catch { /* keep default */ }
+      }
+      // 'mobilenet_v2' is more accurate than the default lite base — worth it
+      // since this only runs on explicit user request.
+      cocoModel = await cocoSsd.load({ base: 'mobilenet_v2' })
+      return cocoModel
+    })()
   }
-  return cocoModel
+  return cocoLoading
+}
+
+/** Downscale a canvas so its longest side ≤ maxSide. Returns { canvas, scale }. */
+function downscaleCanvas(canvas, maxSide) {
+  const scale = Math.min(1, maxSide / Math.max(canvas.width, canvas.height))
+  if (scale >= 1) return { canvas, scale: 1 }
+  const out = document.createElement('canvas')
+  out.width = Math.round(canvas.width * scale)
+  out.height = Math.round(canvas.height * scale)
+  out.getContext('2d').drawImage(canvas, 0, 0, out.width, out.height)
+  return { canvas: out, scale }
 }
 
 /**
- * Detect if image is blurry using Laplacian variance
+ * Detect blur via the variance of the Laplacian: sharp images have high
+ * edge energy, blurry ones low. Uses a correct 4-neighbour Laplacian over a
+ * proper 2D grid. Tuned for a downscaled (~400px) grayscale input.
  */
-export function detectBlur(canvas, threshold = 100) {
-  const ctx = canvas.getContext('2d')
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-  const data = imageData.data
-  const gray = []
-
-  // Convert to grayscale
-  for (let i = 0; i < data.length; i += 4) {
-    gray.push(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2])
-  }
-
-  // Laplacian kernel
-  const lap = [-1, -1, -1, -1, 8, -1, -1, -1, -1]
-  let variance = 0
+export function detectBlur(canvas, threshold = 12) {
   const w = canvas.width
+  const h = canvas.height
+  if (w < 3 || h < 3) return false
 
-  for (let i = 1; i < w * (canvas.height - 1) - 1; i++) {
-    let conv = 0
-    for (let j = 0; j < 9; j++) {
-      conv += lap[j] * gray[i + Math.floor((j % 3 - 1)) + Math.floor((j / 3 - 1)) * w]
-    }
-    variance += conv * conv
+  const { data } = canvas.getContext('2d').getImageData(0, 0, w, h)
+  const gray = new Float64Array(w * h)
+  for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+    gray[p] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]
   }
 
+  let sum = 0
+  let sumSq = 0
+  let n = 0
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x
+      const lap = 4 * gray[i] - gray[i - 1] - gray[i + 1] - gray[i - w] - gray[i + w]
+      sum += lap
+      sumSq += lap * lap
+      n++
+    }
+  }
+  if (n === 0) return false
+  const variance = sumSq / n - (sum / n) ** 2
   return variance < threshold
 }
 
@@ -85,36 +115,37 @@ const COUNTRIES = [
   'New Zealand', 'Brazil', 'Argentina', 'Chile', 'Estonia', 'Latvia', 'Lithuania',
 ]
 
+const DRINK_CLASSES = ['bottle', 'cup', 'wine glass']
+
 /**
- * Detect drink in image and return bounding box + suggested category for smart crop
+ * Detect a drink and return its bounding box (in source-canvas pixels) + a
+ * suggested category. Runs on a downscaled copy for speed and uses a low score
+ * threshold so partially-occluded bottles/cans still register.
  */
 export async function detectDrink(canvas) {
-  try {
-    const model = await loadCocoModel()
-    const predictions = await model.detect(canvas)
+  const model = await loadCocoModel()
 
-    // Look for bottle, cup, glass, wine glass
-    const drinkClasses = ['bottle', 'cup', 'glass', 'wine glass', 'beer glass']
-    const drinkPredictions = predictions.filter(p => drinkClasses.includes(p.class.toLowerCase()))
+  // COCO-SSD resizes internally, but feeding a smaller canvas is markedly faster.
+  const { canvas: small, scale } = downscaleCanvas(canvas, 512)
+  // detect(img, maxNumBoxes, minScore) — default minScore 0.5 is too strict here.
+  const predictions = await model.detect(small, 20, 0.2)
+  console.debug('[detect] predictions:', predictions.map(p => `${p.class} ${p.score.toFixed(2)}`))
 
-    if (drinkPredictions.length === 0) return null
+  const drinks = predictions.filter(p => DRINK_CLASSES.includes(p.class.toLowerCase()))
+  if (drinks.length === 0) return null
 
-    // Get largest drink detection
-    const largest = drinkPredictions.reduce((a, b) => {
-      const aArea = a.bbox[2] * a.bbox[3]
-      const bArea = b.bbox[2] * b.bbox[3]
-      return aArea > bArea ? a : b
-    })
+  // Largest detection wins (most likely the subject)
+  const best = drinks.reduce((a, b) =>
+    (a.bbox[2] * a.bbox[3] >= b.bbox[2] * b.bbox[3] ? a : b))
 
-    return {
-      class: largest.class,
-      score: largest.score,
-      bbox: largest.bbox, // [x, y, width, height]
-      category: DRINK_CLASS_TO_CATEGORY[largest.class.toLowerCase()] || null,
-    }
-  } catch (e) {
-    console.error('Drink detection failed:', e)
-    return null
+  // Scale the box back up to the original canvas coordinate space
+  const bbox = best.bbox.map(v => v / scale)
+
+  return {
+    class: best.class,
+    score: best.score,
+    bbox, // [x, y, width, height] in source-canvas pixels
+    category: DRINK_CLASS_TO_CATEGORY[best.class.toLowerCase()] || null,
   }
 }
 
@@ -124,8 +155,10 @@ export async function detectDrink(canvas) {
 export async function detectTextAndABV(canvas) {
   const empty = { text: '', name: null, brand: null, abv: null, country: null }
   try {
+    // OCR is the slow step; a ~1000px input keeps it fast without losing label text.
+    const { canvas: small } = downscaleCanvas(canvas, 1000)
     const worker = await createWorker('eng')
-    const result = await worker.recognize(canvas)
+    const result = await worker.recognize(small)
     const text = result.data.text || ''
     await worker.terminate()
 
@@ -210,20 +243,25 @@ export async function runFullDetection(canvas, opts = {}) {
 
   if (quality) {
     onProgress('quality')
-    results.isBlurry = detectBlur(canvas)
-    results.isDark = detectDarkness(canvas)
+    // Quality heuristics don't need full resolution — downscale for speed.
+    const { canvas: q } = downscaleCanvas(canvas, 400)
+    results.isBlurry = detectBlur(q)
+    results.isDark = detectDarkness(q)
   }
 
   if (smart) {
     try {
       onProgress('loading-model')
       await loadCocoModel()
+
       onProgress('detecting')
       results.drink = await detectDrink(canvas)
 
       onProgress('reading-text')
-      // OCR is worth running even if no bottle was localized (labels/cans)
-      results.ocr = await detectTextAndABV(canvas)
+      // Focus OCR on the detected drink (expanded a little) — faster and more
+      // accurate than scanning the whole frame. Fall back to the full image.
+      const region = results.drink ? smartCropDrink(canvas, results.drink.bbox, 0.12) : canvas
+      results.ocr = await detectTextAndABV(region)
     } catch (e) {
       console.error('Detection error:', e)
     }

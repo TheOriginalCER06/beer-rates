@@ -21,14 +21,26 @@ const PROD = process.env.NODE_ENV === 'production';
 app.set('trust proxy', 1);
 
 // ── Security headers ─────────────────────────────────────────────────────────
+// CDN origins used by the optional on-device AI detection (TensorFlow.js model
+// weights + Tesseract.js OCR worker/WASM/training data). Only fetched when the
+// user enables "Automatic drink detection"; the browser pulls them directly.
+const AI_MODEL_HOSTS = [
+  'https://storage.googleapis.com',      // coco-ssd model weights
+  'https://cdn.jsdelivr.net',            // tesseract.js worker + core wasm
+  'https://tessdata.projectnaftali.com', // tesseract language training data
+  'https://unpkg.com',                   // fallback CDN
+];
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:    ["'self'"],
-      scriptSrc:     ["'self'", "'unsafe-inline'"],   // needed for Vite SPA chunks
+      // 'wasm-unsafe-eval' lets the WebAssembly backends (TF/Tesseract) instantiate;
+      // blob: + jsDelivr let the Tesseract worker script load.
+      scriptSrc:     ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", "blob:", 'https://cdn.jsdelivr.net'],
       styleSrc:      ["'self'", "'unsafe-inline'"],
       imgSrc:        ["'self'", "data:", "blob:"],
-      connectSrc:    ["'self'"],
+      connectSrc:    ["'self'", "data:", "blob:", ...AI_MODEL_HOSTS],
+      workerSrc:     ["'self'", "blob:"],
       fontSrc:       ["'self'"],
       objectSrc:     ["'none'"],
       frameAncestors:["'none'"],
