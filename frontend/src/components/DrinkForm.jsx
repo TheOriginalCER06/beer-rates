@@ -58,12 +58,33 @@ export default function DrinkForm() {
   const [stage, setStage]       = useState(null)      // current detection stage or null
   const [detection, setDetection] = useState(null)    // raw detection results
   const [autofilled, setAutofilled] = useState([])    // labels of fields we filled
+  const [dupes, setDupes]       = useState([])         // possible duplicates by name
 
   useEffect(() => {
     if (!isEdit) return
     fetch(`/api/drinks/${id}`).then(r => r.json())
       .then(d => setForm({ ...d, abv: d.abv ?? '', would_buy_again: Boolean(d.would_buy_again) }))
   }, [id, isEdit])
+
+  // While adding, warn if a drink with a similar name already exists
+  useEffect(() => {
+    if (isEdit) return
+    const name = form.name.trim()
+    if (name.length < 3) { setDupes([]); return }
+    const t = setTimeout(() => {
+      fetch(`/api/drinks?search=${encodeURIComponent(name)}`)
+        .then(r => (r.ok ? r.json() : []))
+        .then(list => {
+          const lower = name.toLowerCase()
+          const matches = (Array.isArray(list) ? list : [])
+            .filter(d => d.name?.toLowerCase().includes(lower))
+            .slice(0, 3)
+          setDupes(matches)
+        })
+        .catch(() => setDupes([]))
+    }, 400)
+    return () => clearTimeout(t)
+  }, [form.name, isEdit])
 
   const set = (field, val) =>
     setForm(f => ({ ...f, [field]: val, ...(field === 'category' ? { style: '' } : {}) }))
@@ -196,8 +217,23 @@ export default function DrinkForm() {
             <Divider />
 
             {/* Core fields */}
-            <TextField label="Name" required fullWidth value={form.name} onChange={e => set('name', e.target.value)}
-              placeholder={form.category === 'Wine' ? 'e.g. Château Margaux 2018' : 'e.g. Guinness Draught'} />
+            <Box>
+              <TextField label="Name" required fullWidth value={form.name} onChange={e => set('name', e.target.value)}
+                placeholder={form.category === 'Wine' ? 'e.g. Château Margaux 2018' : 'e.g. Guinness Draught'} />
+              {dupes.length > 0 && (
+                <Alert severity="info" sx={{ mt: 1, py: 0.25 }}>
+                  <Typography variant="caption" fontWeight={600} sx={{ display: 'block', mb: 0.5 }}>
+                    Already logged something similar:
+                  </Typography>
+                  <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', gap: 0.75 }}>
+                    {dupes.map(d => (
+                      <Chip key={d.id} component={Link} to={`/drink/${d.id}`} clickable size="small"
+                        label={`${d.name} · ${d.rating}/10`} variant="outlined" />
+                    ))}
+                  </Stack>
+                </Alert>
+              )}
+            </Box>
 
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField fullWidth label={form.category === 'Wine' ? 'Producer / Château' : 'Brewery / Producer'}

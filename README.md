@@ -390,8 +390,11 @@ All endpoints live under `/api`.
 | `style` | `Stout` | Exact style match |
 | `minRating` | `7` | Minimum rating (inclusive) |
 | `maxRating` | `10` | Maximum rating (inclusive) |
+| `mine` | `1` | When logged in, limit to drinks you created |
 | `sort` | `rating` | `created_at`, `date_tried`, `rating`, `name`, `category` |
 | `order` | `desc` | `asc` or `desc` |
+
+Drink objects include `created_by_name` (the username of whoever added the entry, or `null`).
 
 #### `GET /api/drinks/calendar` query parameters
 

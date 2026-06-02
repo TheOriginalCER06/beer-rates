@@ -13,6 +13,7 @@ import Stack from '@mui/material/Stack'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import ToggleButton from '@mui/material/ToggleButton'
 import Fab from '@mui/material/Fab'
+import Chip from '@mui/material/Chip'
 import Skeleton from '@mui/material/Skeleton'
 import InputAdornment from '@mui/material/InputAdornment'
 import IconButton from '@mui/material/IconButton'
@@ -22,6 +23,7 @@ import { useTheme } from '@mui/material/styles'
 import AddRounded from '@mui/icons-material/AddRounded'
 import SearchRounded from '@mui/icons-material/SearchRounded'
 import FileDownloadRounded from '@mui/icons-material/FileDownloadRounded'
+import PersonRounded from '@mui/icons-material/PersonRounded'
 
 function CardSkeleton() {
   return (
@@ -49,8 +51,11 @@ export default function DrinkList() {
   const [style, setStyle]       = useState('')
   const [sort, setSort]         = useState('created_at')
   const [order, setOrder]       = useState('desc')
+  const [mine, setMine]         = useState(false)
 
   useEffect(() => { setStyle('') }, [category])
+  // Drop the "Mine" filter if the user logs out
+  useEffect(() => { if (!user) setMine(false) }, [user])
 
   // Debounce the search box so we don't fetch on every keystroke
   useEffect(() => {
@@ -64,6 +69,7 @@ export default function DrinkList() {
     if (search)   p.set('search',   search)
     if (category) p.set('category', category)
     if (style)    p.set('style',    style)
+    if (mine)     p.set('mine',     '1')
     fetch(`/api/drinks?${p}`)
       .then(async (r) => {
         if (!r.ok) return []
@@ -73,9 +79,11 @@ export default function DrinkList() {
       .then(setDrinks)
       .catch(() => setDrinks([]))
       .finally(() => setLoading(false))
-  }, [search, category, style, sort, order])
+  }, [search, category, style, sort, order, mine])
 
   const styles = category ? (STYLES_BY_CATEGORY[category] || []) : []
+  // Only surface the creator when more than one person has contributed
+  const showCreator = new Set(drinks.map(d => d.created_by_name).filter(Boolean)).size > 1
 
   return (
     <Box>
@@ -99,14 +107,29 @@ export default function DrinkList() {
         </Box>
       </Box>
 
-      {/* Category tabs */}
-      <Box sx={{ mb: 2, overflowX: 'auto', pb: 0.5 }}>
-        <ToggleButtonGroup value={category} exclusive onChange={(_, v) => setCategory(v ?? '')} size="small">
-          <ToggleButton value="">All</ToggleButton>
-          {CATEGORIES.map(c => (
-            <ToggleButton key={c} value={c}>{c}</ToggleButton>
-          ))}
-        </ToggleButtonGroup>
+      {/* Category tabs + Mine filter */}
+      <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ overflowX: 'auto', pb: 0.5, flex: 1 }}>
+          <ToggleButtonGroup value={category} exclusive onChange={(_, v) => setCategory(v ?? '')} size="small">
+            <ToggleButton value="">All</ToggleButton>
+            {CATEGORIES.map(c => (
+              <ToggleButton key={c} value={c}>{c}</ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </Box>
+        {user && (
+          <Tooltip title="Show only drinks I added">
+            <Chip
+              icon={<PersonRounded sx={{ fontSize: 16 }} />}
+              label="Mine"
+              size="small"
+              color={mine ? 'primary' : 'default'}
+              variant={mine ? 'filled' : 'outlined'}
+              onClick={() => setMine(m => !m)}
+              sx={{ flexShrink: 0, cursor: 'pointer' }}
+            />
+          </Tooltip>
+        )}
       </Box>
 
       {/* Filters */}
@@ -159,7 +182,7 @@ export default function DrinkList() {
             {drinks.length} drink{drinks.length !== 1 ? 's' : ''}
           </Typography>
           <Stack spacing={1.5}>
-            {drinks.map(d => <DrinkCard key={d.id} drink={d} />)}
+            {drinks.map(d => <DrinkCard key={d.id} drink={d} showCreator={showCreator} />)}
           </Stack>
         </>
       )}

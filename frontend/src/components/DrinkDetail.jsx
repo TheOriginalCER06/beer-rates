@@ -68,6 +68,7 @@ export default function DrinkDetail() {
     { label: 'Country / Region',   value: drink.country },
     { label: 'Date Tried',         value: drink.date_tried ? new Date(drink.date_tried + 'T00:00:00').toLocaleDateString() : null },
     { label: 'Location',           value: drink.location },
+    { label: 'Added By',           value: drink.created_by_name },
   ].filter((item) => item.value)
 
   return (

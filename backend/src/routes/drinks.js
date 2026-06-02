@@ -26,19 +26,23 @@ const canManageDrink = (req, drink) => {
 
 // GET /api/drinks
 router.get('/', (req, res) => {
-  const { search, style, category, minRating, maxRating,
+  const { search, style, category, minRating, maxRating, mine,
           sort = 'created_at', order = 'desc' } = req.query;
   const col = VALID_SORTS.includes(sort)   ? sort  : 'created_at';
   const dir = VALID_ORDERS.includes(order) ? order : 'desc';
 
-  let q = 'SELECT * FROM beers WHERE 1=1';
+  let q = `SELECT b.*, u.username AS created_by_name
+           FROM beers b LEFT JOIN users u ON u.id = b.created_by
+           WHERE 1=1`;
   const p = [];
-  if (search)    { q += ' AND (name LIKE ? OR brewery LIKE ? OR comment LIKE ?)'; p.push(`%${search}%`, `%${search}%`, `%${search}%`); }
-  if (category)  { q += ' AND category = ?'; p.push(category); }
-  if (style)     { q += ' AND style = ?';    p.push(style); }
-  if (minRating) { q += ' AND rating >= ?';  p.push(parseInt(minRating, 10)); }
-  if (maxRating) { q += ' AND rating <= ?';  p.push(parseInt(maxRating, 10)); }
-  q += ` ORDER BY ${col} ${dir}`;
+  if (search)    { q += ' AND (b.name LIKE ? OR b.brewery LIKE ? OR b.comment LIKE ?)'; p.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+  if (category)  { q += ' AND b.category = ?'; p.push(category); }
+  if (style)     { q += ' AND b.style = ?';    p.push(style); }
+  if (minRating) { q += ' AND b.rating >= ?';  p.push(parseInt(minRating, 10)); }
+  if (maxRating) { q += ' AND b.rating <= ?';  p.push(parseInt(maxRating, 10)); }
+  // `mine=1` limits to the logged-in user's own drinks (no-op when not logged in)
+  if (mine === '1' && req.session?.userId) { q += ' AND b.created_by = ?'; p.push(req.session.userId); }
+  q += ` ORDER BY b.${col} ${dir}`;
 
   res.json(db.prepare(q).all(...p));
 });
@@ -101,7 +105,11 @@ router.get('/export.csv', (_req, res) => {
 
 // GET /api/drinks/:id
 router.get('/:id', (req, res) => {
-  const d = db.prepare('SELECT * FROM beers WHERE id = ?').get(req.params.id);
+  const d = db.prepare(`
+    SELECT b.*, u.username AS created_by_name
+    FROM beers b LEFT JOIN users u ON u.id = b.created_by
+    WHERE b.id = ?
+  `).get(req.params.id);
   if (!d) return res.status(404).json({ error: 'Not found' });
   res.json(d);
 });

@@ -6,10 +6,11 @@ import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
 import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded'
 import PinDropRounded from '@mui/icons-material/PinDropRounded'
+import PersonRounded from '@mui/icons-material/PersonRounded'
 import RatingBadge from './RatingBadge'
 import { CATEGORY_ICON, CATEGORY_COLOR } from '../constants'
 
-export default function DrinkCard({ drink }) {
+export default function DrinkCard({ drink, showCreator = false }) {
   const cat   = CATEGORY_COLOR[drink.category] || CATEGORY_COLOR.Other
   const meta  = [drink.brewery, drink.style, drink.abv ? `${drink.abv}%` : null].filter(Boolean).join(' · ')
 
@@ -58,6 +59,11 @@ export default function DrinkCard({ drink }) {
             {drink.would_buy_again ? (
               <CheckCircleRounded sx={{ fontSize: 14, color: 'success.main' }} />
             ) : null}
+            {showCreator && drink.created_by_name && (
+              <Typography variant="caption" color="text.disabled" sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                <PersonRounded sx={{ fontSize: 11 }} />{drink.created_by_name}
+              </Typography>
+            )}
           </Box>
         </Box>
       </CardActionArea>
