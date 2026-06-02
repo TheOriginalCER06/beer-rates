@@ -142,6 +142,37 @@ export default function SettingsPage() {
         ) : <Typography color="text.disabled" variant="body2">Loading…</Typography>}
       </Paper>
 
+      {/* AI Detection */}
+      <Paper sx={{ p: 3, borderRadius: 3, mb: 2.5 }}>
+        <Typography variant="subtitle1" fontWeight={700} mb={2}>AI Features</Typography>
+        <Typography variant="body2" color="text.secondary" mb={1.5}>
+          Automatic image analysis when uploading photos:
+        </Typography>
+        <Stack spacing={1.5}>
+          <Box>
+            <Typography variant="body2" fontWeight={600}>Automatic Drink Detection</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Detects drink type, brand, and ABV from photos. Auto-fills fields when available.
+            </Typography>
+            <Typography variant="caption" display="block" color="warning.main" sx={{ mt: 0.5 }}>
+              First use may download AI models (~50MB)
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="body2" fontWeight={600}>Quality Warnings</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Alerts you if photo is blurry or too dark
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="body2" fontWeight={600}>Auto-Rotation & Cropping</Typography>
+            <Typography variant="caption" color="text.secondary">
+              Automatically rotates photos to correct orientation and crops to 4:3 aspect ratio
+            </Typography>
+          </Box>
+        </Stack>
+      </Paper>
+
       {/* Change own password */}
       <Paper sx={{ p: 3, borderRadius: 3, mb: 2.5 }}>
         <Typography variant="subtitle1" fontWeight={700} mb={2}>Change Your Password</Typography>

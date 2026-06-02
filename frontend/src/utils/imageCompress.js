@@ -1,10 +1,13 @@
+import { getExifOrientation, rotateCanvasByExif } from './imageDetection'
+
 /**
  * Resize + auto-crop + JPEG-compress an image client-side using Canvas API.
  *
  * Process:
- * 1. Resize to max 1600px in any dimension
- * 2. If image is > 720px in any dimension, auto-crop to 4:3 aspect ratio (portrait-friendly)
- * 3. Compress to 0.82 quality JPEG
+ * 1. Fix EXIF orientation (auto-rotate based on device orientation)
+ * 2. Resize to max 1600px in any dimension
+ * 3. If image is > 720px in any dimension, auto-crop to 4:3 aspect ratio (portrait-friendly)
+ * 4. Compress to 0.82 quality JPEG
  *
  * Returns a Blob (image/jpeg).
  */
@@ -12,12 +15,18 @@ export async function compressImage(file, maxDim = 1600, cropDim = 720, targetRa
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = reject;
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const img = new Image();
       img.onerror = reject;
-      img.onload = () => {
+      img.onload = async () => {
         let w = img.naturalWidth;
         let h = img.naturalHeight;
+
+        // Step 0: Fix EXIF orientation
+        const exifOrientation = await getExifOrientation(file);
+        if ([6, 8].includes(exifOrientation)) {
+          [w, h] = [h, w]; // Swap dimensions for 90° rotations
+        }
 
         // Step 1: Resize to max dimension
         if (w > maxDim || h > maxDim) {
@@ -25,11 +34,14 @@ export async function compressImage(file, maxDim = 1600, cropDim = 720, targetRa
           else        { w = Math.round(w * maxDim / h); h = maxDim; }
         }
 
-        const canvas = document.createElement('canvas');
+        let canvas = document.createElement('canvas');
         canvas.width  = w;
         canvas.height = h;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, w, h);
+
+        // Apply EXIF rotation
+        canvas = rotateCanvasByExif(canvas, exifOrientation);
 
         // Step 2: Auto-crop if larger than 720px in any dimension
         let finalCanvas = canvas;
