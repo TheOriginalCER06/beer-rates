@@ -15,10 +15,13 @@ import ToggleButton from '@mui/material/ToggleButton'
 import Fab from '@mui/material/Fab'
 import Skeleton from '@mui/material/Skeleton'
 import InputAdornment from '@mui/material/InputAdornment'
+import IconButton from '@mui/material/IconButton'
+import Tooltip from '@mui/material/Tooltip'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import AddRounded from '@mui/icons-material/AddRounded'
 import SearchRounded from '@mui/icons-material/SearchRounded'
+import FileDownloadRounded from '@mui/icons-material/FileDownloadRounded'
 
 function CardSkeleton() {
   return (
@@ -40,13 +43,20 @@ export default function DrinkList() {
   const mobile                  = useMediaQuery(theme.breakpoints.down('sm'))
   const [drinks, setDrinks]     = useState([])
   const [loading, setLoading]   = useState(true)
-  const [search, setSearch]     = useState('')
+  const [searchInput, setSearchInput] = useState('') // what the user types
+  const [search, setSearch]     = useState('')        // debounced value used for fetching
   const [category, setCategory] = useState('')
   const [style, setStyle]       = useState('')
   const [sort, setSort]         = useState('created_at')
   const [order, setOrder]       = useState('desc')
 
   useEffect(() => { setStyle('') }, [category])
+
+  // Debounce the search box so we don't fetch on every keystroke
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput.trim()), 300)
+    return () => clearTimeout(t)
+  }, [searchInput])
 
   useEffect(() => {
     setLoading(true)
@@ -72,11 +82,21 @@ export default function DrinkList() {
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h5" fontWeight={700}>All Drinks</Typography>
-        {canCreateDrinks && !mobile && (
-          <Button component={Link} to="/add" variant="contained" startIcon={<AddRounded />} sx={{ borderRadius: 3 }}>
-            Add Drink
-          </Button>
-        )}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {drinks.length > 0 && (
+            <Tooltip title="Export all drinks as CSV">
+              <IconButton component="a" href="/api/drinks/export.csv"
+                sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}>
+                <FileDownloadRounded />
+              </IconButton>
+            </Tooltip>
+          )}
+          {canCreateDrinks && !mobile && (
+            <Button component={Link} to="/add" variant="contained" startIcon={<AddRounded />} sx={{ borderRadius: 3 }}>
+              Add Drink
+            </Button>
+          )}
+        </Box>
       </Box>
 
       {/* Category tabs */}
@@ -94,8 +114,8 @@ export default function DrinkList() {
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
           <TextField
             placeholder="Search name, brewery, notes…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
             size="small"
             sx={{ flex: 2 }}
             InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" sx={{ color: 'text.disabled' }} /></InputAdornment> }}

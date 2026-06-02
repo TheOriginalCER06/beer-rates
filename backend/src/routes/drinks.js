@@ -74,6 +74,31 @@ router.get('/calendar', (req, res) => {
   res.json(out);
 });
 
+// GET /api/drinks/export.csv — download all drinks as a spreadsheet-friendly CSV
+const CSV_COLUMNS = [
+  'id', 'name', 'brewery', 'style', 'abv', 'country', 'category',
+  'rating', 'would_buy_again', 'comment', 'location', 'date_tried', 'created_at',
+];
+const csvCell = (val) => {
+  if (val === null || val === undefined) return '';
+  const s = String(val);
+  // Quote when the value contains a comma, quote, or newline; double inner quotes.
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+router.get('/export.csv', (_req, res) => {
+  const rows = db.prepare('SELECT * FROM beers ORDER BY date_tried DESC, created_at DESC').all();
+  const lines = [CSV_COLUMNS.join(',')];
+  for (const r of rows) {
+    lines.push(CSV_COLUMNS.map((c) => csvCell(r[c])).join(','));
+  }
+  // UTF-8 BOM so Excel renders Norwegian characters (æ ø å) correctly.
+  const csv = '﻿' + lines.join('\r\n');
+  const stamp = new Date().toISOString().split('T')[0];
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="drinks-${stamp}.csv"`);
+  res.send(csv);
+});
+
 // GET /api/drinks/:id
 router.get('/:id', (req, res) => {
   const d = db.prepare('SELECT * FROM beers WHERE id = ?').get(req.params.id);

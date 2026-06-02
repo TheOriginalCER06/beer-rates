@@ -369,6 +369,7 @@ All endpoints live under `/api`.
 | `GET` | `/api/drinks` | View | List drinks |
 | `GET` | `/api/drinks/stats` | View | Aggregated statistics |
 | `GET` | `/api/drinks/calendar` | View | Drinks grouped by date |
+| `GET` | `/api/drinks/export.csv` | View | Download all drinks as a UTF-8 CSV file |
 | `GET` | `/api/drinks/:id` | View | Single drink |
 | `POST` | `/api/drinks` | Admin / Contributor | Create drink |
 | `PUT` | `/api/drinks/:id` | Owner / Admin | Update drink (contributor only for own drinks) |

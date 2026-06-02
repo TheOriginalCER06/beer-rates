@@ -250,7 +250,7 @@ export default function DrinkForm() {
                 <Typography sx={SECTION}>Photo</Typography>
                 <FormControlLabel
                   control={<Switch checked={ai.smartDetection} onChange={e => setAiSetting('smartDetection', e.target.checked)} size="small" color="primary" />}
-                  label={<Typography variant="caption" sx={{ fontSize: '0.7rem' }}>🤖 Automatic drink detection</Typography>}
+                  label={<Typography variant="caption" sx={{ fontSize: '0.7rem' }}>Automatic drink detection</Typography>}
                   sx={{ ml: 0 }}
                 />
               </Box>
