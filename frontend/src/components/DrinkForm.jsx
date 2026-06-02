@@ -114,7 +114,7 @@ export default function DrinkForm() {
             <Divider />
 
             {/* Core fields */}
-            <TextField label="Name *" required fullWidth value={form.name} onChange={e => set('name', e.target.value)}
+            <TextField label="Name" required fullWidth value={form.name} onChange={e => set('name', e.target.value)}
               placeholder={form.category === 'Wine' ? 'e.g. Château Margaux 2018' : 'e.g. Guinness Draught'} />
 
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

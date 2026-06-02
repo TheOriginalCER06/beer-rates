@@ -12,10 +12,14 @@ import Chip from '@mui/material/Chip'
 import Divider from '@mui/material/Divider'
 import Grid from '@mui/material/Grid'
 import Skeleton from '@mui/material/Skeleton'
+import Dialog from '@mui/material/Dialog'
+import IconButton from '@mui/material/IconButton'
 import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded'
 import EditRounded from '@mui/icons-material/EditRounded'
 import DeleteRounded from '@mui/icons-material/DeleteRounded'
 import ArrowBackRounded from '@mui/icons-material/ArrowBackRounded'
+import CloseRounded from '@mui/icons-material/CloseRounded'
+import ZoomInRounded from '@mui/icons-material/ZoomInRounded'
 
 export default function DrinkDetail() {
   const { id }            = useParams()
@@ -24,6 +28,7 @@ export default function DrinkDetail() {
   const [drink, setDrink] = useState(null)
   const [loading, setLoading] = useState(true)
   const [confirm, setConfirm] = useState(false)
+  const [photoFullscreen, setPhotoFullscreen] = useState(false)
 
   useEffect(() => {
     fetch(`/api/drinks/${id}`)
@@ -73,10 +78,16 @@ export default function DrinkDetail() {
       <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
         {/* Hero photo */}
         {drink.photo_path && (
-          <Box sx={{ position: 'relative' }}>
+          <Box sx={{ position: 'relative', cursor: 'pointer' }} onClick={() => setPhotoFullscreen(true)}>
             <Box component="img" src={drink.photo_path} alt={drink.name}
-              sx={{ width: '100%', height: { xs: 200, sm: 260 }, objectFit: 'cover', display: 'block' }} />
+              sx={{ width: '100%', height: { xs: 280, sm: 380 }, objectFit: 'cover', display: 'block' }} />
             <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15,23,42,0.8) 0%, transparent 60%)' }} />
+            <IconButton
+              sx={{ position: 'absolute', bottom: 12, right: 12, bgcolor: 'rgba(0,0,0,0.5)', color: '#fff', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' } }}
+              onClick={(e) => { e.stopPropagation(); setPhotoFullscreen(true); }}
+            >
+              <ZoomInRounded />
+            </IconButton>
           </Box>
         )}
 
@@ -152,6 +163,39 @@ export default function DrinkDetail() {
         onConfirm={handleDelete}
         onCancel={() => setConfirm(false)}
       />
+
+      {/* Fullscreen photo modal */}
+      <Dialog
+        open={photoFullscreen}
+        onClose={() => setPhotoFullscreen(false)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: '#000',
+            backgroundImage: `url('${drink.photo_path}')`,
+            backgroundSize: 'contain',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center',
+            minHeight: '80vh',
+          },
+        }}
+      >
+        <IconButton
+          onClick={() => setPhotoFullscreen(false)}
+          sx={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            color: '#fff',
+            bgcolor: 'rgba(0,0,0,0.6)',
+            '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' },
+            zIndex: 1,
+          }}
+        >
+          <CloseRounded />
+        </IconButton>
+      </Dialog>
     </Box>
   )
 }
