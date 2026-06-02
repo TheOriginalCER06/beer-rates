@@ -10,19 +10,19 @@ export const CATEGORY_ICON = {
 
 // MUI-compatible color tokens (used in sx props)
 export const CATEGORY_COLOR = {
-  Beer:           { bg: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: 'rgba(245,158,11,0.25)' },
-  Wine:           { bg: 'rgba(192,132,252,0.12)', color: '#c084fc', border: 'rgba(192,132,252,0.25)' },
-  Cocktail:       { bg: 'rgba(249,168,212,0.12)', color: '#f9a8d4', border: 'rgba(249,168,212,0.25)' },
-  'Alcohol Free': { bg: 'rgba(52,211,153,0.12)',  color: '#34d399', border: 'rgba(52,211,153,0.25)' },
-  Other:          { bg: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: 'rgba(148,163,184,0.2)' },
+  Beer:           { bg: '#f59f0b1f', color: '#f59e0b', border: '#f59f0b40' },
+  Wine:           { bg: '#a855f71f', color: '#a855f7', border: '#a855f740' },
+  Cocktail:       { bg: '#f174a61f', color: '#ec4899', border: '#ec489940' },
+  'Alcohol Free': { bg: '#04cc5e1f',  color: '#04cc5e', border: '#04cc5e40' },
+  Other:          { bg: '#2b83ff1f', color: '#2b83ff', border: '#2b83ff40' },
 }
 
 export const CATEGORY_DOT_COLOR = {
   Beer:           '#f59e0b',
   Wine:           '#a855f7',
   Cocktail:       '#ec4899',
-  'Alcohol Free': '#10b981',
-  Other:          '#64748b',
+  'Alcohol Free': '#04cc5e',
+  Other:          '#2b83ff',
 }
 
 // Rating → background colour

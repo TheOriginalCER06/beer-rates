@@ -4,7 +4,7 @@ set -eu
 
 APP_DIR="${APP_DIR:-/opt/beer-rates}"
 BRANCH="${BRANCH:-main}"
-CRON_EXPR="${CRON_EXPR:-30 4 * * 0}"
+CRON_EXPR="${CRON_EXPR:-0 18 * * *}"
 LOG_FILE="${LOG_FILE:-/var/log/beerrates-weekly-update.log}"
 MARKER="# beerrates-weekly-auto-update"
 
@@ -27,7 +27,7 @@ Usage:
 Options:
   --app-dir <path>   App directory (default: /opt/beer-rates)
   --branch <name>    Branch to update from (default: main)
-  --cron <expr>      Cron schedule (default: "30 4 * * 0" = Sundays 04:30)
+  --cron <expr>      Cron schedule (default: "0 18 * * *" = Daily 18:00)
   --log-file <path>  Log file path (default: /var/log/beerrates-weekly-update.log)
   -h, --help         Show this help
 

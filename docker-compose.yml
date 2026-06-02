@@ -9,7 +9,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      # - COOKIE_SECURE=true # Uncomment if using HTTPS
+      - COOKIE_SECURE=true # Comment if not using HTTPS
 
 volumes:
   drink_data:
