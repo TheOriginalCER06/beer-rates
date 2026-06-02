@@ -1,7 +1,6 @@
-import * as tf from '@tensorflow/tfjs'
+import '@tensorflow/tfjs'  // side-effect: registers the WebGL/CPU backend for coco-ssd
 import * as cocoSsd from '@tensorflow-models/coco-ssd'
-import { Tesseract } from 'tesseract.js'
-import piexif from 'piexifjs'
+import { createWorker } from 'tesseract.js'
 
 let cocoModel = null
 
@@ -13,59 +12,6 @@ async function loadCocoModel() {
     cocoModel = await cocoSsd.load()
   }
   return cocoModel
-}
-
-/**
- * Detect EXIF orientation and rotate canvas accordingly
- */
-export function rotateCanvasByExif(canvas, exifOrientation) {
-  if (!exifOrientation || exifOrientation === 1) return canvas
-
-  const ctx = canvas.getContext('2d')
-  const w = canvas.width
-  const h = canvas.height
-  const rotated = document.createElement('canvas')
-
-  // Orientation mappings: 1=normal, 3=180, 6=90CW, 8=90CCW
-  switch (exifOrientation) {
-    case 3: // 180
-      rotated.width = w
-      rotated.height = h
-      ctx.translate(w, h)
-      ctx.rotate(Math.PI)
-      ctx.drawImage(canvas, 0, 0)
-      break
-    case 6: // 90 CW
-      rotated.width = h
-      rotated.height = w
-      ctx.translate(h, 0)
-      ctx.rotate(Math.PI / 2)
-      ctx.drawImage(canvas, 0, 0)
-      break
-    case 8: // 90 CCW
-      rotated.width = h
-      rotated.height = w
-      ctx.translate(0, w)
-      ctx.rotate(-Math.PI / 2)
-      ctx.drawImage(canvas, 0, 0)
-      break
-    default:
-      return canvas
-  }
-  return rotated
-}
-
-/**
- * Extract EXIF orientation from JPEG blob
- */
-export async function getExifOrientation(blob) {
-  try {
-    const arrayBuffer = await blob.arrayBuffer()
-    const exif = piexif.load(arrayBuffer)
-    return exif['0th'][piexif.ImageIFD.Orientation]?.[0] || 1
-  } catch {
-    return 1
-  }
 }
 
 /**
@@ -122,8 +68,25 @@ export function detectOrientation(canvas) {
   return canvas.height > canvas.width ? 'portrait' : 'landscape'
 }
 
+// COCO-SSD only knows generic objects — map the few drink-ish ones to a category.
+const DRINK_CLASS_TO_CATEGORY = {
+  'wine glass': 'Wine',
+  cup: 'Cocktail',
+}
+
+// Small country/region gazetteer for matching OCR text → Country field.
+const COUNTRIES = [
+  'Norway', 'Norge', 'Sweden', 'Sverige', 'Denmark', 'Danmark', 'Finland',
+  'Iceland', 'Germany', 'Deutschland', 'Belgium', 'België', 'Belgique',
+  'Netherlands', 'Holland', 'France', 'Italy', 'Italia', 'Spain', 'España',
+  'Portugal', 'Ireland', 'Scotland', 'England', 'United Kingdom', 'UK',
+  'USA', 'United States', 'America', 'Canada', 'Mexico', 'Czech', 'Czechia',
+  'Poland', 'Austria', 'Switzerland', 'Japan', 'China', 'Australia',
+  'New Zealand', 'Brazil', 'Argentina', 'Chile', 'Estonia', 'Latvia', 'Lithuania',
+]
+
 /**
- * Detect drink in image and return bounding box for smart crop
+ * Detect drink in image and return bounding box + suggested category for smart crop
  */
 export async function detectDrink(canvas) {
   try {
@@ -147,6 +110,7 @@ export async function detectDrink(canvas) {
       class: largest.class,
       score: largest.score,
       bbox: largest.bbox, // [x, y, width, height]
+      category: DRINK_CLASS_TO_CATEGORY[largest.class.toLowerCase()] || null,
     }
   } catch (e) {
     console.error('Drink detection failed:', e)
@@ -155,28 +119,46 @@ export async function detectDrink(canvas) {
 }
 
 /**
- * Extract text from image using OCR and try to find brand, ABV
+ * Extract text from image using OCR and parse out name, brand, ABV, country.
  */
 export async function detectTextAndABV(canvas) {
+  const empty = { text: '', name: null, brand: null, abv: null, country: null }
   try {
-    const worker = await Tesseract.createWorker()
+    const worker = await createWorker('eng')
     const result = await worker.recognize(canvas)
-    const text = result.data.text
-
+    const text = result.data.text || ''
     await worker.terminate()
 
-    // Extract potential brand (usually uppercase words at start)
-    const brandMatch = text.match(/^([A-Z\s]+)/m)
-    const brand = brandMatch ? brandMatch[1].trim() : null
+    // Clean lines, drop noise
+    const lines = text
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length >= 2 && /[a-zA-ZæøåÆØÅ]/.test(l))
 
-    // Extract ABV percentage (e.g., "5.5%", "ABV: 7.2")
-    const abvMatch = text.match(/(\d+[.,]\d+)\s*%|ABV[:\s]+(\d+[.,]\d+)/i)
+    // ABV: "5.5%", "ABV 7,2", "Alc. 4.7% vol"
+    const abvMatch = text.match(/(?:ABV|ALC[.\s]*(?:VOL)?)[:\s]*?(\d{1,2}[.,]\d)\s*%?|(\d{1,2}[.,]\d)\s*%/i)
     const abv = abvMatch ? (abvMatch[1] || abvMatch[2]).replace(',', '.') : null
 
-    return { text, brand, abv }
+    // Country: first gazetteer hit (case-insensitive, whole word)
+    let country = null
+    for (const c of COUNTRIES) {
+      if (new RegExp(`\\b${c}\\b`, 'i').test(text)) { country = c; break }
+    }
+
+    // Brand: prefer a mostly-uppercase line (label brands are usually all-caps)
+    const upperLine = lines.find(l => {
+      const letters = l.replace(/[^a-zA-ZæøåÆØÅ]/g, '')
+      return letters.length >= 3 && letters === letters.toUpperCase()
+    })
+    // Name: the longest "wordy" line is usually the product name
+    const wordy = [...lines].sort((a, b) => b.length - a.length)
+    const name = wordy[0] || null
+    const brand = upperLine || (lines[0] !== name ? lines[0] : null)
+
+    return { text, name, brand, abv, country }
   } catch (e) {
     console.error('OCR failed:', e)
-    return { text: '', brand: null, abv: null }
+    return empty
   }
 }
 
@@ -206,27 +188,47 @@ export function smartCropDrink(canvas, drinkBbox, padding = 0.15) {
 }
 
 /**
- * Run full detection suite
+ * Run the detection suite. Emits progress stages via onProgress so the UI can
+ * show what's happening.
+ *
+ * @param canvas      source canvas
+ * @param opts        { smart, quality, onProgress }
+ *                      smart   – run ML drink/brand/ABV recognition
+ *                      quality – run blur/darkness checks
+ *                      onProgress(stage) – 'quality'|'loading-model'|'detecting'|'reading-text'|'done'
  */
-export async function runFullDetection(canvas, enableSmartCrop) {
+export async function runFullDetection(canvas, opts = {}) {
+  const { smart = false, quality = true, onProgress = () => {} } = opts
+
   const results = {
     orientation: detectOrientation(canvas),
-    isBlurry: detectBlur(canvas),
-    isDark: detectDarkness(canvas),
+    isBlurry: false,
+    isDark: false,
     drink: null,
-    ocr: { text: '', brand: null, abv: null },
+    ocr: { text: '', name: null, brand: null, abv: null, country: null },
   }
 
-  if (enableSmartCrop) {
+  if (quality) {
+    onProgress('quality')
+    results.isBlurry = detectBlur(canvas)
+    results.isDark = detectDarkness(canvas)
+  }
+
+  if (smart) {
     try {
+      onProgress('loading-model')
+      await loadCocoModel()
+      onProgress('detecting')
       results.drink = await detectDrink(canvas)
-      if (results.drink) {
-        results.ocr = await detectTextAndABV(canvas)
-      }
+
+      onProgress('reading-text')
+      // OCR is worth running even if no bottle was localized (labels/cans)
+      results.ocr = await detectTextAndABV(canvas)
     } catch (e) {
       console.error('Detection error:', e)
     }
   }
 
+  onProgress('done')
   return results
 }

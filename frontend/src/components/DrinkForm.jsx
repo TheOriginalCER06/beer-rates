@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom'
 import { CATEGORIES, STYLES_BY_CATEGORY } from '../constants'
-import { compressImage } from '../utils/imageCompress'
-import { runFullDetection } from '../utils/imageDetection'
+import { loadOrientedCanvas, cropToAspect, canvasToBlob, DEFAULT_TARGET_RATIO } from '../utils/imageCompress'
+import { useAiSettings, setAiSetting } from '../utils/aiSettings'
 import RatingPicker from './RatingPicker'
 import Box from '@mui/material/Box'
 import Paper from '@mui/material/Paper'
@@ -19,6 +19,7 @@ import Alert from '@mui/material/Alert'
 import Stack from '@mui/material/Stack'
 import IconButton from '@mui/material/IconButton'
 import CircularProgress from '@mui/material/CircularProgress'
+import LinearProgress from '@mui/material/LinearProgress'
 import Chip from '@mui/material/Chip'
 import CameraAltRounded from '@mui/icons-material/CameraAltRounded'
 import CloseRounded from '@mui/icons-material/CloseRounded'
@@ -28,6 +29,14 @@ import AutoAwesomeRounded from '@mui/icons-material/AutoAwesomeRounded'
 const today = () => new Date().toISOString().split('T')[0]
 
 const SECTION = { mb: 0.5, fontWeight: 600, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }
+
+const STAGE_LABEL = {
+  'quality':       'Checking image quality…',
+  'loading-model': 'Loading AI models (first run downloads ~50 MB)…',
+  'detecting':     'Detecting drink…',
+  'reading-text':  'Reading label text…',
+  'done':          'Done',
+}
 
 export default function DrinkForm() {
   const { id }         = useParams()
@@ -39,15 +48,16 @@ export default function DrinkForm() {
   const empty = { name: '', brewery: '', style: '', abv: '', country: '', category: 'Beer',
     rating: null, comment: '', location: '', date_tried: sp.get('date') || today(), would_buy_again: false }
 
+  const ai                      = useAiSettings()
   const [form, setForm]         = useState(empty)
   const [photoFile, setPhoto]   = useState(null)
   const [photoPreview, setPrev] = useState(null)
   const [removePhoto, setRm]    = useState(false)
   const [error, setError]       = useState('')
   const [saving, setSaving]     = useState(false)
-  const [detecting, setDetecting] = useState(false)
-  const [detection, setDetection] = useState(null)
-  const [smartCropEnabled, setSmartCrop] = useState(false)
+  const [stage, setStage]       = useState(null)      // current detection stage or null
+  const [detection, setDetection] = useState(null)    // raw detection results
+  const [autofilled, setAutofilled] = useState([])    // labels of fields we filled
 
   useEffect(() => {
     if (!isEdit) return
@@ -58,43 +68,78 @@ export default function DrinkForm() {
   const set = (field, val) =>
     setForm(f => ({ ...f, [field]: val, ...(field === 'category' ? { style: '' } : {}) }))
 
+  // Fill only empty fields so we never clobber what the user typed.
+  const applyAutofill = (det) => {
+    const filled = []
+    setForm(prev => {
+      const next = { ...prev }
+      const add = (field, val, label) => {
+        if (val && !String(next[field] ?? '').trim()) { next[field] = val; filled.push(label) }
+      }
+      // Category: only set from detection if user is still on the default 'Beer'
+      if (det.drink?.category && next.category === 'Beer' && det.drink.category !== 'Beer') {
+        next.category = det.drink.category
+        next.style = ''
+        filled.push('Category')
+      }
+      add('name',    det.ocr?.name,    'Name')
+      add('brewery', det.ocr?.brand,   'Brewery')
+      add('abv',     det.ocr?.abv,     'ABV')
+      add('country', det.ocr?.country, 'Country')
+      return next
+    })
+    setAutofilled(filled)
+  }
+
+  const showPreview = (blob) => {
+    const reader = new FileReader()
+    reader.onload = ev => setPrev(ev.target.result)
+    reader.readAsDataURL(blob)
+  }
+
   const handlePhoto = async (e) => {
     const file = e.target.files?.[0]; if (!file) return
+    setError(''); setDetection(null); setAutofilled([])
     try {
-      setDetecting(true); setDetection(null)
-      const blob = await compressImage(file); setPhoto(blob); setRm(false)
+      // 1. Orient + resize (no crop yet — we may crop around a detected drink)
+      const base = await loadOrientedCanvas(file, { autoEnhance: ai.autoEnhance })
 
-      // Run detection if enabled
-      if (smartCropEnabled) {
-        const img = new Image()
-        img.onload = async () => {
-          const canvas = document.createElement('canvas')
-          canvas.width = img.width
-          canvas.height = img.height
-          canvas.getContext('2d').drawImage(img, 0, 0)
+      // 2. Immediate centre-cropped preview so the user sees something right away
+      const centre = ai.autoEnhance ? cropToAspect(base, { targetRatio: DEFAULT_TARGET_RATIO }) : base
+      let blob = await canvasToBlob(centre)
+      setPhoto(blob); setRm(false); showPreview(blob)
 
-          const detectionResults = await runFullDetection(canvas, true)
-          setDetection(detectionResults)
+      // 3. Detection (drink localisation, quality, OCR) if enabled
+      if (ai.smartDetection || ai.qualityWarnings) {
+        setStage('quality')
+        try {
+          const { runFullDetection } = await import('../utils/imageDetection')
+          const results = await runFullDetection(base, {
+            smart: ai.smartDetection,
+            quality: ai.qualityWarnings,
+            onProgress: (s) => setStage(s),
+          })
+          setDetection(results)
 
-          // Auto-fill detected fields
-          if (detectionResults.drink?.class) {
-            setForm(f => ({ ...f, style: detectionResults.drink.class }))
+          // 4. Re-crop around the detected drink (when auto-enhance is on)
+          if (ai.autoEnhance && results.drink?.bbox) {
+            const [x, y, bw, bh] = results.drink.bbox
+            const focus = { cx: (x + bw / 2) / base.width, cy: (y + bh / 2) / base.height }
+            const focused = cropToAspect(base, { targetRatio: DEFAULT_TARGET_RATIO, focus })
+            blob = await canvasToBlob(focused)
+            setPhoto(blob); showPreview(blob)
           }
-          if (detectionResults.ocr?.brand) {
-            setForm(f => ({ ...f, brewery: detectionResults.ocr.brand }))
-          }
-          if (detectionResults.ocr?.abv) {
-            setForm(f => ({ ...f, abv: detectionResults.ocr.abv }))
-          }
-          setDetecting(false)
+
+          if (ai.smartDetection) applyAutofill(results)
+        } catch {
+          setError('Image analysis failed')
+        } finally {
+          setStage(null)
         }
-        img.src = URL.createObjectURL(blob)
-      } else {
-        setDetecting(false)
       }
-
-      const reader = new FileReader(); reader.onload = ev => setPrev(ev.target.result); reader.readAsDataURL(blob)
-    } catch (ex) { setError('Could not process image'); setDetecting(false) }
+    } catch (ex) {
+      setError('Could not process image'); setStage(null)
+    }
   }
 
   const clearPhoto = () => {
@@ -204,41 +249,53 @@ export default function DrinkForm() {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
                 <Typography sx={SECTION}>Photo</Typography>
                 <FormControlLabel
-                  control={<Switch checked={smartCropEnabled} onChange={e => setSmartCrop(e.target.checked)} size="small" />}
-                  label={<Typography variant="caption" sx={{ fontSize: '0.7rem' }}>AI Detection</Typography>}
+                  control={<Switch checked={ai.smartDetection} onChange={e => setAiSetting('smartDetection', e.target.checked)} size="small" color="primary" />}
+                  label={<Typography variant="caption" sx={{ fontSize: '0.7rem' }}>🤖 Automatic drink detection</Typography>}
                   sx={{ ml: 0 }}
                 />
               </Box>
 
-              {detection && (
-                <Stack spacing={1} sx={{ mb: 2, p: 1.5, bgcolor: 'rgba(16,185,129,0.1)', borderRadius: 2 }}>
-                  {detection.isBlurry && <Alert severity="warning" sx={{ py: 0.5 }}>⚠ Image may be blurry</Alert>}
-                  {detection.isDark && <Alert severity="warning" sx={{ py: 0.5 }}>⚠ Image is very dark</Alert>}
-                  {detection.drink && (
-                    <Box>
-                      <Chip
-                        icon={<AutoAwesomeRounded />}
-                        label={`Detected: ${detection.drink.class}`}
-                        size="small"
-                        color="success"
-                        variant="outlined"
-                      />
-                    </Box>
-                  )}
-                  {detection.ocr?.brand && (
-                    <Chip label={`Brand: ${detection.ocr.brand}`} size="small" />
-                  )}
-                  {detection.ocr?.abv && (
-                    <Chip label={`ABV: ${detection.ocr.abv}%`} size="small" />
-                  )}
-                </Stack>
+              {/* Staged "working" indicator */}
+              {stage && stage !== 'done' && (
+                <Box sx={{ mb: 2, p: 1.5, borderRadius: 2, bgcolor: 'rgba(245,158,11,0.08)', border: '1px solid', borderColor: 'rgba(245,158,11,0.25)' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <CircularProgress size={16} color="primary" />
+                    <Typography variant="caption" fontWeight={600} color="primary.main">
+                      {STAGE_LABEL[stage] || 'Analyzing image…'}
+                    </Typography>
+                  </Box>
+                  <LinearProgress color="primary" sx={{ borderRadius: 2, height: 4 }} />
+                </Box>
               )}
 
-              {detecting && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <CircularProgress size={20} />
-                  <Typography variant="caption" color="text.secondary">Analyzing image...</Typography>
-                </Box>
+              {/* Detection results + autofill summary */}
+              {detection && !stage && (
+                <Stack spacing={1} sx={{ mb: 2, p: 1.5, bgcolor: 'rgba(16,185,129,0.08)', border: '1px solid', borderColor: 'rgba(16,185,129,0.25)', borderRadius: 2 }}>
+                  {detection.isBlurry && <Alert severity="warning" sx={{ py: 0.25 }}>⚠ Image may be blurry</Alert>}
+                  {detection.isDark && <Alert severity="warning" sx={{ py: 0.25 }}>⚠ Image is very dark</Alert>}
+
+                  {autofilled.length > 0 && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.75 }}>
+                      <AutoAwesomeRounded fontSize="small" sx={{ color: 'success.main' }} />
+                      <Typography variant="caption" color="success.main" fontWeight={600}>
+                        Auto-filled:
+                      </Typography>
+                      {autofilled.map(f => <Chip key={f} label={f} size="small" color="success" variant="outlined" />)}
+                    </Box>
+                  )}
+
+                  {ai.smartDetection && detection.drink && (
+                    <Chip icon={<AutoAwesomeRounded />} label={`Detected: ${detection.drink.class}`}
+                      size="small" color="success" variant="outlined" sx={{ alignSelf: 'flex-start' }} />
+                  )}
+
+                  {ai.smartDetection && !detection.drink && autofilled.length === 0 &&
+                   !detection.isBlurry && !detection.isDark && (
+                    <Typography variant="caption" color="text.secondary">
+                      No drink details recognised — fill the fields manually.
+                    </Typography>
+                  )}
+                </Stack>
               )}
 
               {showExisting || photoPreview ? (

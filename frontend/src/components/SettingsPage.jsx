@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import PasswordInput from './PasswordInput'
 import ConfirmDialog from './ConfirmDialog'
+import { useAiSettings, setAiSetting } from '../utils/aiSettings'
 import Box from '@mui/material/Box'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
@@ -45,6 +46,7 @@ const ROLE_STYLES = {
 
 export default function SettingsPage() {
   const { user, logout }  = useAuth()
+  const ai                = useAiSettings()
   const [settings, setSettings] = useState(null)
   const [users, setUsers]       = useState([])
   const [snack, setSnack]       = useState({ open: false, msg: '', severity: 'success' })
@@ -144,32 +146,52 @@ export default function SettingsPage() {
 
       {/* AI Detection */}
       <Paper sx={{ p: 3, borderRadius: 3, mb: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={700} mb={2}>AI Features</Typography>
-        <Typography variant="body2" color="text.secondary" mb={1.5}>
-          Automatic image analysis when uploading photos:
+        <Typography variant="subtitle1" fontWeight={700} mb={0.5}>AI Features</Typography>
+        <Typography variant="body2" color="text.secondary" mb={2}>
+          Automatic image analysis when uploading photos. These run entirely in your browser.
         </Typography>
-        <Stack spacing={1.5}>
-          <Box>
-            <Typography variant="body2" fontWeight={600}>Automatic Drink Detection</Typography>
-            <Typography variant="caption" color="text.secondary">
-              Detects drink type, brand, and ABV from photos. Auto-fills fields when available.
-            </Typography>
-            <Typography variant="caption" display="block" color="warning.main" sx={{ mt: 0.5 }}>
-              First use may download AI models (~50MB)
-            </Typography>
-          </Box>
-          <Box>
-            <Typography variant="body2" fontWeight={600}>Quality Warnings</Typography>
-            <Typography variant="caption" color="text.secondary">
-              Alerts you if photo is blurry or too dark
-            </Typography>
-          </Box>
-          <Box>
-            <Typography variant="body2" fontWeight={600}>Auto-Rotation & Cropping</Typography>
-            <Typography variant="caption" color="text.secondary">
-              Automatically rotates photos to correct orientation and crops to 4:3 aspect ratio
-            </Typography>
-          </Box>
+        <Stack spacing={1}>
+          <FormControlLabel
+            control={<Switch checked={ai.smartDetection} onChange={e => setAiSetting('smartDetection', e.target.checked)} color="primary" />}
+            label={
+              <Box>
+                <Typography variant="body2" fontWeight={600}>Automatic Drink Detection</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Detects drink type, brand, ABV and country from the photo, then auto-fills empty fields.
+                </Typography>
+                <Typography variant="caption" display="block" color="warning.main" sx={{ mt: 0.25 }}>
+                  First use downloads AI models (~50&nbsp;MB), cached afterwards.
+                </Typography>
+              </Box>
+            }
+            sx={{ alignItems: 'flex-start', ml: 0 }}
+          />
+          <Divider flexItem />
+          <FormControlLabel
+            control={<Switch checked={ai.qualityWarnings} onChange={e => setAiSetting('qualityWarnings', e.target.checked)} color="primary" />}
+            label={
+              <Box>
+                <Typography variant="body2" fontWeight={600}>Quality Warnings</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Warns you if a photo looks blurry or too dark.
+                </Typography>
+              </Box>
+            }
+            sx={{ alignItems: 'flex-start', ml: 0 }}
+          />
+          <Divider flexItem />
+          <FormControlLabel
+            control={<Switch checked={ai.autoEnhance} onChange={e => setAiSetting('autoEnhance', e.target.checked)} color="primary" />}
+            label={
+              <Box>
+                <Typography variant="body2" fontWeight={600}>Auto-Rotation & Cropping</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Fixes photo orientation and crops large images to a 4:3 aspect ratio.
+                </Typography>
+              </Box>
+            }
+            sx={{ alignItems: 'flex-start', ml: 0 }}
+          />
         </Stack>
       </Paper>
 
