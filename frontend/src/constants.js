@@ -1,10 +1,10 @@
 export const CATEGORIES = ['Beer', 'Wine', 'Cocktail', 'Alcohol Free', 'Other']
 
 // Serving / packaging type — shown for categories where it's meaningful.
-export const CONTAINERS = ['Bottle', 'Can', 'Draft', 'Cask', 'Growler', 'Other']
-export const CONTAINER_CATEGORIES = ['Beer', 'Alcohol Free', 'Other']
+export const CONTAINERS = ['Bottle', 'Can', 'Draft', 'Glass', 'Other']
+export const CONTAINER_CATEGORIES = ['Beer', 'Wine', 'Alcohol Free', 'Other']
 export const CONTAINER_ICON = {
-  Bottle: '🍾', Can: '🥫', Draft: '🍺', Cask: '🛢️', Growler: '🧴', Other: '🍶',
+  Bottle: '🍾', Can: '🥫', Draft: '🍺', Glass: '🥂', Other: '🍶',
 }
 
 export const CATEGORY_ICON = {

@@ -8,6 +8,7 @@ export default function RatingBadge({ rating, size = 'md' }) {
   const bg = ratingColor(rating)
   return (
     <Avatar
+      aria-label={`Rating: ${rating} out of 10`}
       sx={{
         bgcolor: bg,
         width:  SIZES[size],

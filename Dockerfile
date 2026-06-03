@@ -26,6 +26,6 @@ ENV DATA_DIR=/app/data
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:3000/api/auth/config || exit 1
+  CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
 
 CMD ["node", "src/server.js"]

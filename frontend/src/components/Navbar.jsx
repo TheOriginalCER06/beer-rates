@@ -15,6 +15,7 @@ import ListItemText from '@mui/material/ListItemText'
 import Divider from '@mui/material/Divider'
 import Tooltip from '@mui/material/Tooltip'
 import Avatar from '@mui/material/Avatar'
+import Chip from '@mui/material/Chip'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme, alpha } from '@mui/material/styles'
 import MenuIcon from '@mui/icons-material/Menu'
@@ -31,6 +32,12 @@ const NAV = [
   { to: '/calendar', label: 'Calendar',   icon: <CalendarMonthRounded fontSize="small" /> },
   { to: '/stats',    label: 'Stats',      icon: <BarChartRounded fontSize="small" /> },
 ]
+
+const ROLE_COLOR = {
+  admin:       'primary',
+  contributor: 'success',
+  viewer:      'default',
+}
 
 export default function Navbar() {
   const { pathname }     = useLocation()
@@ -58,12 +65,12 @@ export default function Navbar() {
   })
 
   const drawerContent = (
-    <Box sx={{ width: 260, pt: 1 }}>
+    <Box sx={{ width: 260, pt: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main' }}>Beer Rates</Typography>
+        <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main' }}>Drikke vurderinger</Typography>
       </Box>
       <Divider />
-      <List sx={{ px: 1, pt: 1 }}>
+      <List sx={{ px: 1, pt: 1, flex: 1 }}>
         {NAV.map(({ to, label, icon }) => (
           <ListItemButton
             key={to} component={Link} to={to}
@@ -100,10 +107,22 @@ export default function Navbar() {
           </ListItemButton>
         )}
         {user ? (
-          <ListItemButton onClick={handleLogout} sx={{ borderRadius: 2, color: 'error.main' }}>
-            <ListItemIcon sx={{ minWidth: 36, color: 'error.main' }}><LogoutRounded fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Sign out" primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 500 }} />
-          </ListItemButton>
+          <>
+            {/* User info in drawer */}
+            <Box sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+              <Avatar sx={{ width: 28, height: 28, bgcolor: 'primary.dark', color: '#000', fontSize: 12, fontWeight: 700 }}>
+                {user.username[0].toUpperCase()}
+              </Avatar>
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography variant="body2" fontWeight={600} noWrap>{user.username}</Typography>
+                <Typography variant="caption" color="text.disabled" sx={{ textTransform: 'capitalize' }}>{user.role}</Typography>
+              </Box>
+            </Box>
+            <ListItemButton onClick={handleLogout} sx={{ borderRadius: 2, color: 'error.main' }}>
+              <ListItemIcon sx={{ minWidth: 36, color: 'error.main' }}><LogoutRounded fontSize="small" /></ListItemIcon>
+              <ListItemText primary="Sign out" primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 500 }} />
+            </ListItemButton>
+          </>
         ) : (
           <ListItemButton onClick={() => { navigate('/login'); setDrawer(false) }} sx={{ borderRadius: 2 }}>
             <ListItemIcon sx={{ minWidth: 36, color: 'text.secondary' }}><LoginRounded fontSize="small" /></ListItemIcon>
@@ -119,7 +138,7 @@ export default function Navbar() {
       <AppBar position="sticky">
         <Toolbar sx={{ gap: 1, minHeight: { xs: 56, sm: 64 } }}>
           {mobile && (
-            <IconButton edge="start" onClick={() => setDrawer(true)} sx={{ mr: 0.5 }}>
+            <IconButton edge="start" onClick={() => setDrawer(true)} sx={{ mr: 0.5 }} aria-label="Open navigation menu">
               <MenuIcon />
             </IconButton>
           )}
@@ -130,7 +149,7 @@ export default function Navbar() {
           </Typography>
 
           {!mobile && (
-            <Box sx={{ display: 'flex', gap: 0.5, ml: 2, flex: 1 }}>
+            <Box component="nav" aria-label="Main navigation" sx={{ display: 'flex', gap: 0.5, ml: 2, flex: 1 }}>
               {NAV.map(({ to, label }) => (
                 <Button key={to} component={Link} to={to} sx={navLinkSx(to)} disableRipple={false}>
                   {label}
@@ -148,7 +167,7 @@ export default function Navbar() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {user?.role === 'admin' && (
                 <Tooltip title="Settings">
-                  <IconButton component={Link} to="/settings" size="small"
+                  <IconButton component={Link} to="/settings" size="small" aria-label="Settings"
                     sx={{ color: active('/settings') ? 'primary.main' : 'text.disabled' }}>
                     <SettingsRounded fontSize="small" />
                   </IconButton>
@@ -156,13 +175,24 @@ export default function Navbar() {
               )}
               {user ? (
                 <>
-                  <Tooltip title={user.username}>
-                    <Avatar sx={{ width: 28, height: 28, bgcolor: 'primary.dark', color: '#000', fontSize: 12, fontWeight: 700, cursor: 'default' }}>
-                      {user.username[0].toUpperCase()}
-                    </Avatar>
+                  <Tooltip title={`${user.username} (${user.role})`}>
+                    <Chip
+                      avatar={
+                        <Avatar sx={{ bgcolor: 'primary.dark', color: '#000 !important', fontWeight: 700, fontSize: 11 }}>
+                          {user.username[0].toUpperCase()}
+                        </Avatar>
+                      }
+                      label={user.username}
+                      size="small"
+                      color={ROLE_COLOR[user.role] || 'default'}
+                      variant="outlined"
+                      sx={{ height: 28, fontSize: '0.78rem', fontWeight: 500, cursor: 'default',
+                        '& .MuiChip-avatar': { width: 22, height: 22 } }}
+                    />
                   </Tooltip>
                   <Tooltip title="Sign out">
-                    <IconButton onClick={handleLogout} size="small" sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}>
+                    <IconButton onClick={handleLogout} size="small" aria-label="Sign out"
+                      sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}>
                       <LogoutRounded fontSize="small" />
                     </IconButton>
                   </Tooltip>

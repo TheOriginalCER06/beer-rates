@@ -105,7 +105,13 @@ class SQLiteStore extends session.Store {
     try { db.prepare("DELETE FROM sessions WHERE sid=?").run(sid); cb(null); } catch (e) { cb(e); }
   }
 }
-setInterval(() => db.prepare("DELETE FROM sessions WHERE expires < datetime('now')").run(), 3_600_000);
+// Clean up on startup and then hourly
+db.prepare("DELETE FROM sessions WHERE expires < datetime('now')").run();
+db.prepare("DELETE FROM lookup_cache WHERE expires_at < ?").run(Date.now());
+setInterval(() => {
+  db.prepare("DELETE FROM sessions WHERE expires < datetime('now')").run();
+  db.prepare("DELETE FROM lookup_cache WHERE expires_at < ?").run(Date.now());
+}, 3_600_000);
 
 app.use(session({
   secret: sessionSecret,
@@ -160,6 +166,15 @@ app.get('/photos/:filename', (req, res) => {
   res.sendFile(filePath);
 });
 
+// ── Health check ─────────────────────────────────────────────────────────────
+const startedAt = Date.now();
+app.get('/api/health', (_req, res) => {
+  const uptime = Math.floor((Date.now() - startedAt) / 1000);
+  const drinks = db.prepare('SELECT COUNT(*) AS n FROM beers').get().n;
+  const users  = db.prepare('SELECT COUNT(*) AS n FROM users').get().n;
+  res.json({ status: 'ok', uptime, drinks, users });
+});
+
 // ── API routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth',     authRouter);
 app.use('/api/settings', settingsRouter);
@@ -172,8 +187,20 @@ app.use('/api/drinks', (req, res, next) =>
 // ── SPA static files ─────────────────────────────────────────────────────────
 if (PROD) {
   const staticPath = path.join(__dirname, '../frontend/dist');
-  app.use(express.static(staticPath, { index: false }));
-  app.get('*', (_req, res) => res.sendFile(path.join(staticPath, 'index.html')));
+  // Hashed assets (/assets/index-abc123.js) can be cached forever.
+  // index.html must be revalidated so users always get the latest build.
+  app.use('/assets', express.static(path.join(staticPath, 'assets'), {
+    maxAge: '1y',
+    immutable: true,
+  }));
+  app.use(express.static(staticPath, {
+    index: false,
+    maxAge: '1h',
+  }));
+  app.get('*', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(path.join(staticPath, 'index.html'));
+  });
 }
 
 app.listen(PORT, '0.0.0.0', () =>

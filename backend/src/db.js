@@ -39,9 +39,11 @@ migrate(`ALTER TABLE beers ADD COLUMN photo_path TEXT`);
 migrate(`ALTER TABLE beers ADD COLUMN created_by INTEGER`);
 migrate(`ALTER TABLE beers ADD COLUMN container  TEXT`);   // Bottle / Can / Draft / …
 migrate(`CREATE INDEX IF NOT EXISTS idx_beers_created_by ON beers(created_by)`);
+migrate(`CREATE INDEX IF NOT EXISTS idx_beers_date_tried ON beers(date_tried)`);
+migrate(`CREATE INDEX IF NOT EXISTS idx_beers_category ON beers(category)`);
 
 // ── External look-up cache ────────────────────────────────────────────────────
-// Persisted so repeat searches (OpenBreweryDB / TheCocktailDB / GrapeMinds / OFF)
+// Persisted so repeat searches (OpenBreweryDB / TheCocktailDB / Vivino / Open Food Facts)
 // cost zero API requests until the TTL expires.
 db.exec(`
   CREATE TABLE IF NOT EXISTS lookup_cache (

@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams, Link, useSearchParams } from 'react-router-dom'
 import { CATEGORIES, STYLES_BY_CATEGORY, CONTAINERS, CONTAINER_CATEGORIES } from '../constants'
 import { loadOrientedCanvas, cropToAspect, canvasToBlob, DEFAULT_TARGET_RATIO } from '../utils/imageCompress'
 import { useAiSettings, setAiSetting } from '../utils/aiSettings'
+import { useToast } from '../ToastContext'
 import RatingPicker from './RatingPicker'
 import DrinkLookup from './DrinkLookup'
 import Box from '@mui/material/Box'
@@ -22,6 +23,7 @@ import IconButton from '@mui/material/IconButton'
 import CircularProgress from '@mui/material/CircularProgress'
 import LinearProgress from '@mui/material/LinearProgress'
 import Chip from '@mui/material/Chip'
+import Fade from '@mui/material/Fade'
 import CameraAltRounded from '@mui/icons-material/CameraAltRounded'
 import CloseRounded from '@mui/icons-material/CloseRounded'
 import ArrowBackRounded from '@mui/icons-material/ArrowBackRounded'
@@ -42,6 +44,7 @@ const STAGE_LABEL = {
 export default function DrinkForm() {
   const { id }         = useParams()
   const navigate       = useNavigate()
+  const toast          = useToast()
   const [sp]           = useSearchParams()
   const isEdit         = Boolean(id)
   const fileRef        = useRef()
@@ -61,6 +64,16 @@ export default function DrinkForm() {
   const [detection, setDetection] = useState(null)    // raw detection results
   const [autofilled, setAutofilled] = useState([])    // labels of fields we filled
   const [dupes, setDupes]       = useState([])         // possible duplicates by name
+
+  const isDirty = Boolean(form.name || form.brewery || form.rating || photoFile)
+
+  // Warn before leaving with unsaved changes
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
 
   useEffect(() => {
     if (!isEdit) return
@@ -223,6 +236,7 @@ export default function DrinkForm() {
       } else if (removePhoto && isEdit) {
         await fetch(`/api/drinks/${id}/photo`, { method: 'DELETE' })
       }
+      toast?.(isEdit ? 'Changes saved!' : `"${saved.name}" logged!`)
       navigate(`/drink/${saved.id}`)
     } finally { setSaving(false) }
   }
@@ -231,6 +245,7 @@ export default function DrinkForm() {
   const showExisting = form.photo_path && !removePhoto && !photoPreview
 
   return (
+    <Fade in timeout={300}>
     <Box sx={{ maxWidth: 640, mx: 'auto' }}>
       <Button startIcon={<ArrowBackRounded />} component={Link} to={isEdit ? `/drink/${id}` : '/'}
         color="inherit" sx={{ mb: 2, color: 'text.secondary' }}>Back</Button>
@@ -421,5 +436,6 @@ export default function DrinkForm() {
         </form>
       </Paper>
     </Box>
+    </Fade>
   )
 }

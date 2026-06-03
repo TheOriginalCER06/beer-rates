@@ -10,14 +10,17 @@ Note: This project is made with AI! The code is made using Claude Sonnet 4.6. Do
 | | |
 |---|---|
 | **Drink categories** | Beer, Wine, Cocktail, Alcohol Free, Other — each with a tailored style dropdown |
-| **Entry fields** | Name, brewery/producer, style, ABV, country/region, rating (1–10), tasting notes, location/occasion, date, photo, "would have again" |
-| **Photo upload** | Camera or file picker; images are compressed client-side (Canvas API) before upload |
+| **Entry fields** | Name, brewery/producer, style, ABV, country/region, rating (1–10), tasting notes, location/occasion, date, photo, container/serving type, "would have again" |
+| **Photo upload** | Camera or file picker; images are EXIF-rotated, resized, and compressed client-side (Canvas API); smart 9:16 portrait crop centred on detected drink |
+| **AI features** | TensorFlow.js drink detection (COCO-SSD), Tesseract.js OCR for brand/ABV, blur & darkness warnings — all in-browser, no server needed |
+| **Online look-up** | Search OpenBreweryDB, TheCocktailDB, Vivino, Open Food Facts directly from the add/edit form; one-tap auto-fills name, brewery, style, ABV, country + imports photo |
 | **Calendar view** | Monthly grid with coloured dots per category; click any day to see that day's drinks |
 | **Stats page** | Average rating, by-category breakdown, rating distribution, top drinks, styles, countries |
-| **Authentication** | Session-based login; admin can toggle public read-only access for guests |
-| **User management** | Admin can create, edit, activate/deactivate, and delete users; role system (admin / contributor / viewer) |
-| **Dark UI** | Material UI v5 with a custom dark theme; responsive — works on phone and desktop |
-| **Security** | `helmet`, rate-limited login (15 req / 15 min), strict session cookies, path-traversal protection, hidden `X-Powered-By` |
+| **CSV export** | Download all drinks as a UTF-8 (BOM) CSV — opens correctly in Excel with æ ø å |
+| **Authentication** | Session-based login; role system (admin / contributor / viewer); admin can toggle public read-only access |
+| **User management** | Admin can create, edit, activate/deactivate, and delete users |
+| **Dark UI** | Material UI v5 with a custom dark theme (amber accent); responsive — works on phone and desktop |
+| **Security** | `helmet` CSP, rate-limited login, strict session cookies, path-traversal protection, SSRF-safe image import |
 
 ---
 
@@ -30,6 +33,7 @@ Note: This project is made with AI! The code is made using Claude Sonnet 4.6. Do
 | Database | SQLite via `better-sqlite3` (single file, no separate server) |
 | Auth | `express-session` with a custom SQLite session store · `bcryptjs` |
 | File uploads | `multer` (memory storage) · Canvas API compression |
+| AI / ML | TensorFlow.js COCO-SSD (mobilenet_v2) · Tesseract.js · piexifjs |
 | Security | `helmet` · `express-rate-limit` |
 | Container | Docker — multi-stage build (Node 20 Alpine) |
 
@@ -44,6 +48,8 @@ docker compose up -d --build
 ```
 
 The app is now running on **port 3000**.
+
+> **No `.env` file needed.** All external APIs are free with no keys. Provider toggles are controlled in-app via the admin Settings page.
 
 ### Get the admin password
 
@@ -316,31 +322,49 @@ Open `http://localhost:5173`. The Vite dev server proxies `/api` and `/photos` r
 
 ## Environment variables
 
+Only three environment variables are used, all optional:
+
 | Variable | Default | Description |
 |---|---|---|
 | `PORT` | `3000` | Port the Express server listens on |
-| `DATA_DIR` | `/app/data` | Directory for the SQLite database and uploaded photos |
 | `NODE_ENV` | — | Set to `production` by the Dockerfile |
 | `COOKIE_SECURE` | `false` | Set to `true` when the app is accessed over HTTPS |
-| `THECOCKTAILDB_KEY` | `1` | TheCocktailDB key (`1` = free public test key) |
-| `GRAPEMINDS_API_KEY` | — | Wine look-ups (register at grapeminds.de/entwickler); disabled when empty |
-| `OPENFOODFACTS_ENABLED` | `true` | Toggle Open Food Facts product look-ups |
-| `LOOKUP_CACHE_DAYS` | `30` | Days to cache an external look-up result before re-fetching |
 
-These live in a **gitignored `backend/.env`** (loaded via `dotenv` locally and `env_file` in `docker-compose.yml`). See `backend/.env` for setup notes.
+Data is stored in `/app/data` (or `DATA_DIR` if overridden).
+
+> **No API keys are needed.** All four external drink databases (OpenBreweryDB, TheCocktailDB, Vivino, Open Food Facts) are free and use public endpoints. They are toggled on/off from the admin Settings page in the app.
 
 ---
 
 ## External drink databases
 
-Look-ups are proxied through the backend (`/api/lookup`) and **cached in SQLite**, so repeat searches cost zero API requests. On the Add/Edit form, the **"Look up online"** box searches the source matching the selected category and one-click auto-fills name, brewery, style, ABV, country — and imports the product/cocktail image when available.
+Look-ups are proxied through the backend (`/api/lookup`) and **cached in SQLite for 30 days**, so repeat searches cost zero API requests. On the Add/Edit form, expand **"Search online databases"** to search the sources matching the selected category. Tapping a result auto-fills name, brewery, style, ABV, country — and imports the product/cocktail image when available.
 
 | Source | Used for | Key needed |
 |---|---|---|
 | [OpenBreweryDB](https://www.openbrewerydb.org/) | Beer — brewery + country | No |
-| [TheCocktailDB](https://www.thecocktaildb.com/api.php) | Cocktails — incl. thumbnails & ingredients | No (free test key `1`) |
-| [Open Food Facts](https://world.openfoodfacts.org/) | Beer / Wine / Other — products + photos | No |
-| [GrapeMinds](https://grapeminds.de/entwickler) | Wine | Yes — set `GRAPEMINDS_API_KEY` |
+| [TheCocktailDB](https://www.thecocktaildb.com/api.php) | Cocktails — thumbnails + ingredients | No (public key `1`) |
+| [Vivino](https://www.vivino.com/) | Wine — producer, region, vintage, photos | No (unofficial explore API) |
+| [Open Food Facts](https://world.openfoodfacts.org/) | Beer / Wine / Other — packaged products + photos | No |
+
+All four providers can be toggled individually (and via a master switch) from the admin **Settings → Online Drink Databases** section.
+
+---
+
+## AI features
+
+All AI processing runs **entirely in the browser** (no server calls, no data leaves the device):
+
+| Feature | Technology | Description |
+|---|---|---|
+| **Drink detection** | TensorFlow.js COCO-SSD (mobilenet_v2) | Detects drink objects in the photo; auto-crops to centre the drink |
+| **Label OCR** | Tesseract.js | Reads brand name, ABV, and country from the label; auto-fills empty fields |
+| **Quality warnings** | Canvas pixel analysis | Warns if a photo is blurry (Laplacian variance) or too dark |
+| **Auto-enhance** | EXIF + Canvas | Fixes rotation, resizes to max 1600px, crops to 9:16 portrait |
+
+> **First use** downloads AI models (~50 MB), which are then cached by the browser. Subsequent uses are instant.
+
+Toggle all AI features from **Settings → AI Features** or the per-photo toggle on the add/edit form.
 
 ---
 
@@ -394,6 +418,7 @@ All endpoints live under `/api`.
 | `PUT` | `/api/drinks/:id` | Owner / Admin | Update drink (contributor only for own drinks) |
 | `DELETE` | `/api/drinks/:id` | Owner / Admin | Delete drink (also deletes photo; contributor only for own drinks) |
 | `POST` | `/api/drinks/:id/photo` | Owner / Admin | Upload / replace photo (contributor only for own drinks) |
+| `POST` | `/api/drinks/:id/photo-url` | Owner / Admin | Import photo from allowlisted URL (lookup results) |
 | `DELETE` | `/api/drinks/:id/photo` | Owner / Admin | Remove photo (contributor only for own drinks) |
 
 **"View"** = logged in, or public view is enabled.
@@ -429,7 +454,9 @@ Returns `{ "YYYY-MM-DD": [ ...drinks ] }`.
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | `GET` | `/api/settings` | Admin | Get all settings |
-| `PUT` | `/api/settings` | Admin | Update settings (`public_view: bool`) |
+| `PUT` | `/api/settings` | Admin | Update settings |
+
+Settings keys: `public_view`, `lookup_enabled`, `lookup_openbrewerydb`, `lookup_thecocktaildb`, `lookup_vivino`, `lookup_openfoodfacts` (all boolean).
 
 ### Look-up (external databases)
 
@@ -437,7 +464,6 @@ Returns `{ "YYYY-MM-DD": [ ...drinks ] }`.
 |---|---|---|---|
 | `GET` | `/api/lookup?category=&q=` | Login | Search external drink DBs (cached); returns normalised results |
 | `GET` | `/api/lookup/providers` | Public | Which sources are active |
-| `POST` | `/api/drinks/:id/photo-url` | Owner / Admin | Import a drink photo from an allowlisted image URL |
 
 ### Photos
 
@@ -455,14 +481,16 @@ Auth-aware static file serving. Returns 401 if not logged in and public view is 
 beer-rates/
 ├── backend/
 │   ├── src/
-│   │   ├── server.js              # Express entry — sessions, security, routing
+│   │   ├── server.js              # Express entry — sessions, CSP, routing
 │   │   ├── db.js                  # SQLite setup, migrations, first-run admin
+│   │   ├── lookup.js              # External API proxy + SQLite cache
 │   │   ├── middleware/
 │   │   │   └── auth.js            # requireView / requireLogin / requireAdmin
 │   │   └── routes/
 │   │       ├── auth.js            # Login, logout, user management
-│   │       ├── drinks.js          # CRUD + photo upload + stats + calendar
-│   │       └── settings.js        # Public view toggle
+│   │       ├── drinks.js          # CRUD + photo upload/import + stats + calendar + CSV
+│   │       ├── lookup.js          # GET /api/lookup (search) + /api/lookup/providers
+│   │       └── settings.js        # Admin settings (toggles for public view + providers)
 │   └── package.json
 ├── frontend/
 │   ├── src/
@@ -470,19 +498,23 @@ beer-rates/
 │   │   ├── App.jsx                # Router, auth gate, route map
 │   │   ├── AuthContext.jsx        # Global auth state (user, publicView)
 │   │   ├── theme.js               # MUI dark theme definition
-│   │   ├── constants.js           # Categories, icons, colours, styles
+│   │   ├── constants.js           # Categories, icons, colours, styles, containers
 │   │   ├── utils/
-│   │   │   └── imageCompress.js   # Canvas-based JPEG compression
+│   │   │   ├── imageCompress.js   # Canvas pipeline: orient → resize → crop → compress
+│   │   │   ├── imageExif.js       # EXIF rotation helpers (piexifjs, lightweight)
+│   │   │   ├── imageDetection.js  # TF.js + Tesseract (lazy-loaded, code-split ~1.9 MB)
+│   │   │   └── aiSettings.js      # localStorage-backed AI toggles + React hook
 │   │   └── components/
 │   │       ├── Navbar.jsx         # AppBar + mobile Drawer
-│   │       ├── LoginPage.jsx      # Full-screen login (shown when public view is off)
-│   │       ├── DrinkList.jsx      # List with category tabs + filters + Skeletons
+│   │       ├── LoginPage.jsx      # Full-screen login
+│   │       ├── DrinkList.jsx      # List with category tabs, filters, search, CSV export
 │   │       ├── DrinkCard.jsx      # Card with photo, rating badge, category chip
-│   │       ├── DrinkForm.jsx      # Add/Edit form with photo upload
-│   │       ├── DrinkDetail.jsx    # Detail view with hero photo
+│   │       ├── DrinkForm.jsx      # Add/Edit form with photo upload + AI detection
+│   │       ├── DrinkLookup.jsx    # External database search (collapsible, in DrinkForm)
+│   │       ├── DrinkDetail.jsx    # Detail view with hero photo + fullscreen modal
 │   │       ├── CalendarView.jsx   # Monthly calendar grid
-│   │       ├── StatsView.jsx      # KPIs, LinearProgress bars, top lists
-│   │       ├── SettingsPage.jsx   # Access control, password change, user management
+│   │       ├── StatsView.jsx      # KPIs, charts, top lists
+│   │       ├── SettingsPage.jsx   # Access, AI, database toggles, password, users
 │   │       ├── ConfirmDialog.jsx  # Reusable MUI confirmation dialog
 │   │       ├── PasswordInput.jsx  # TextField with show/hide toggle
 │   │       ├── RatingBadge.jsx    # Coloured Avatar showing 1–10 rating
@@ -517,12 +549,13 @@ CREATE TABLE beers (
   abv             REAL,
   country         TEXT,
   category        TEXT    NOT NULL DEFAULT 'Beer',
+  container       TEXT,                          -- Bottle / Can / Draft / Cask / Growler / Other
   rating          INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 10),
   comment         TEXT,
   location        TEXT,
   date_tried      TEXT    NOT NULL DEFAULT (date('now')),
   would_buy_again INTEGER NOT NULL DEFAULT 0,
-  created_by      INTEGER,
+  created_by      INTEGER,                       -- → users.id
   photo_path      TEXT,
   created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
 );
@@ -541,7 +574,9 @@ CREATE TABLE users (
 CREATE TABLE settings (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
-  -- Keys: public_view ('true'/'false'), session_secret
+  -- Keys: public_view, session_secret,
+  --       lookup_enabled, lookup_openbrewerydb,
+  --       lookup_thecocktaildb, lookup_vivino, lookup_openfoodfacts
 );
 
 -- Sessions (express-session SQLite store)
@@ -549,5 +584,12 @@ CREATE TABLE sessions (
   sid     TEXT PRIMARY KEY,
   data    TEXT NOT NULL,
   expires TEXT NOT NULL
+);
+
+-- External API response cache (30-day TTL)
+CREATE TABLE lookup_cache (
+  key        TEXT PRIMARY KEY,
+  body       TEXT NOT NULL,
+  expires_at INTEGER NOT NULL
 );
 ```

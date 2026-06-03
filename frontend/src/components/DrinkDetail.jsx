@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
-import { CATEGORY_ICON, CATEGORY_COLOR } from '../constants'
+import { CATEGORY_ICON, CATEGORY_COLOR, CONTAINER_ICON } from '../constants'
+import { useToast } from '../ToastContext'
 import RatingBadge from './RatingBadge'
 import ConfirmDialog from './ConfirmDialog'
 import Box from '@mui/material/Box'
@@ -14,21 +15,29 @@ import Grid from '@mui/material/Grid'
 import Skeleton from '@mui/material/Skeleton'
 import Dialog from '@mui/material/Dialog'
 import IconButton from '@mui/material/IconButton'
+import Tooltip from '@mui/material/Tooltip'
+import Snackbar from '@mui/material/Snackbar'
+import Alert from '@mui/material/Alert'
+import Fade from '@mui/material/Fade'
 import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded'
 import EditRounded from '@mui/icons-material/EditRounded'
 import DeleteRounded from '@mui/icons-material/DeleteRounded'
 import ArrowBackRounded from '@mui/icons-material/ArrowBackRounded'
 import CloseRounded from '@mui/icons-material/CloseRounded'
 import ZoomInRounded from '@mui/icons-material/ZoomInRounded'
+import ShareRounded from '@mui/icons-material/ShareRounded'
+import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded'
 
 export default function DrinkDetail() {
   const { id }            = useParams()
   const navigate          = useNavigate()
   const { user }          = useAuth()
+  const toast             = useToast()
   const [drink, setDrink] = useState(null)
   const [loading, setLoading] = useState(true)
   const [confirm, setConfirm] = useState(false)
   const [photoFullscreen, setPhotoFullscreen] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     fetch(`/api/drinks/${id}`)
@@ -37,10 +46,39 @@ export default function DrinkDetail() {
       .finally(() => setLoading(false))
   }, [id, navigate])
 
+  // Keyboard: Escape closes fullscreen or goes back
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'Escape') {
+        if (photoFullscreen) setPhotoFullscreen(false)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [photoFullscreen, navigate])
+
   const handleDelete = async () => {
+    const name = drink?.name
     const res = await fetch(`/api/drinks/${id}`, { method: 'DELETE' })
-    if (res.ok) navigate('/')
+    if (res.ok) {
+      toast?.(`"${name}" deleted`)
+      navigate('/')
+    }
     setConfirm(false)
+  }
+
+  const handleShare = async () => {
+    const url = window.location.href
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: drink?.name, text: `${drink?.name} — ${drink?.rating}/10`, url })
+        return
+      } catch { /* fallback to clipboard */ }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+    } catch { /* clipboard failed, ignore */ }
   }
 
   if (loading) {
@@ -64,7 +102,7 @@ export default function DrinkDetail() {
   const info  = [
     { label: 'Brewery / Producer', value: drink.brewery },
     { label: 'Style / Type',       value: drink.style },
-    { label: 'Served As',          value: drink.container },
+    { label: 'Served As',          value: drink.container ? `${CONTAINER_ICON[drink.container] || ''} ${drink.container}`.trim() : null },
     { label: 'ABV',                value: drink.abv != null ? `${drink.abv}%` : null },
     { label: 'Country / Region',   value: drink.country },
     { label: 'Date Tried',         value: drink.date_tried ? new Date(drink.date_tried + 'T00:00:00').toLocaleDateString() : null },
@@ -72,89 +110,116 @@ export default function DrinkDetail() {
     { label: 'Added By',           value: drink.created_by_name },
   ].filter((item) => item.value)
 
+  // Days since tried
+  const daysSince = drink.date_tried
+    ? Math.floor((Date.now() - new Date(drink.date_tried + 'T00:00:00').getTime()) / 86400000)
+    : null
+
   return (
     <Box sx={{ maxWidth: 640, mx: 'auto' }}>
-      <Button startIcon={<ArrowBackRounded />} component={Link} to="/"
-        color="inherit" sx={{ mb: 2, color: 'text.secondary' }}>All Drinks</Button>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Button startIcon={<ArrowBackRounded />} component={Link} to="/"
+          color="inherit" sx={{ color: 'text.secondary' }}>All Drinks</Button>
+        <Tooltip title={navigator.share ? 'Share' : 'Copy link'}>
+          <IconButton size="small" onClick={handleShare} sx={{ color: 'text.secondary' }}>
+            {navigator.share ? <ShareRounded fontSize="small" /> : <ContentCopyRounded fontSize="small" />}
+          </IconButton>
+        </Tooltip>
+      </Box>
 
-      <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
-        {/* Hero photo */}
-        {drink.photo_path && (
-          <Box sx={{ position: 'relative', cursor: 'pointer' }} onClick={() => setPhotoFullscreen(true)}>
-            <Box component="img" src={drink.photo_path} alt={drink.name}
-              sx={{ width: '100%', height: { xs: 280, sm: 380 }, objectFit: 'cover', display: 'block' }} />
-            <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15,23,42,0.8) 0%, transparent 60%)' }} />
-            <IconButton
-              sx={{ position: 'absolute', bottom: 12, right: 12, bgcolor: 'rgba(0,0,0,0.5)', color: '#fff', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' } }}
-              onClick={(e) => { e.stopPropagation(); setPhotoFullscreen(true); }}
-            >
-              <ZoomInRounded />
-            </IconButton>
-          </Box>
-        )}
-
-        <Box sx={{ p: { xs: 2.5, sm: 3 } }}>
-          {/* Header */}
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 2.5 }}>
-            <Box>
-              <Chip label={`${CATEGORY_ICON[drink.category] || '🍶'} ${drink.category}`} size="small"
-                sx={{ bgcolor: cat.bg, color: cat.color, border: `1px solid ${cat.border}`, mb: 1, fontWeight: 500 }} />
-              <Typography variant="h5" fontWeight={700} lineHeight={1.2}>{drink.name}</Typography>
-              {drink.brewery && <Typography color="text.secondary" mt={0.5}>{drink.brewery}</Typography>}
+      <Fade in timeout={300}>
+        <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
+          {/* Hero photo (or category-coloured placeholder) */}
+          {drink.photo_path ? (
+            <Box sx={{ position: 'relative', cursor: 'pointer' }} onClick={() => setPhotoFullscreen(true)}>
+              <Box component="img" src={drink.photo_path} alt={drink.name} loading="eager"
+                sx={{ width: '100%', height: { xs: 280, sm: 380 }, objectFit: 'cover', display: 'block' }} />
+              <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15,23,42,0.8) 0%, transparent 60%)' }} />
+              <IconButton
+                sx={{ position: 'absolute', bottom: 12, right: 12, bgcolor: 'rgba(0,0,0,0.5)', color: '#fff', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' } }}
+                onClick={(e) => { e.stopPropagation(); setPhotoFullscreen(true); }}
+              >
+                <ZoomInRounded />
+              </IconButton>
             </Box>
-            <RatingBadge rating={drink.rating} size="lg" />
-          </Box>
-
-          {/* Info grid */}
-          {info.length > 0 && (
-            <>
-              <Grid container spacing={2} sx={{ mb: 2 }}>
-                {info.map(({ label, value }) => (
-                  <Grid item xs={6} sm={4} key={label}>
-                    <Typography variant="caption" color="text.disabled" sx={{ display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
-                      {label}
-                    </Typography>
-                    <Typography variant="body2" color="text.primary" fontWeight={500} mt={0.25}>{value}</Typography>
-                  </Grid>
-                ))}
-              </Grid>
-              <Divider sx={{ mb: 2 }} />
-            </>
-          )}
-
-          {/* Notes */}
-          {drink.comment && (
-            <Box mb={2}>
-              <Typography variant="caption" color="text.disabled" sx={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, display: 'block', mb: 0.75 }}>
-                Tasting Notes
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
-                {drink.comment}
+          ) : (
+            <Box sx={{ height: { xs: 100, sm: 120 }, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              bgcolor: cat.bg, borderBottom: `1px solid ${cat.border}` }}>
+              <Typography sx={{ fontSize: { xs: 40, sm: 52 }, opacity: 0.6 }}>
+                {CATEGORY_ICON[drink.category] || '🍶'}
               </Typography>
             </Box>
           )}
 
-          {/* Would have again */}
-          {drink.would_buy_again ? (
-            <Chip icon={<CheckCircleRounded />} label="Would have again" size="small" color="success" variant="outlined" sx={{ mb: 2.5 }} />
-          ) : null}
-
-          {/* Actions */}
-          {canManageDrink && (
-            <>
-              <Divider sx={{ mb: 2 }} />
-              <Box sx={{ display: 'flex', gap: 1.5 }}>
-                <Button component={Link} to={`/edit/${drink.id}`} variant="contained" startIcon={<EditRounded />}>
-                  Edit
-                </Button>
-                <Button variant="outlined" color="error" startIcon={<DeleteRounded />} onClick={() => setConfirm(true)}>
-                  Delete
-                </Button>
+          <Box sx={{ p: { xs: 2.5, sm: 3 } }}>
+            {/* Header */}
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 2.5 }}>
+              <Box>
+                <Chip label={`${CATEGORY_ICON[drink.category] || '🍶'} ${drink.category}`} size="small"
+                  sx={{ bgcolor: cat.bg, color: cat.color, border: `1px solid ${cat.border}`, mb: 1, fontWeight: 500 }} />
+                <Typography variant="h5" fontWeight={700} lineHeight={1.2}>{drink.name}</Typography>
+                {drink.brewery && <Typography color="text.secondary" mt={0.5}>{drink.brewery}</Typography>}
               </Box>
-            </>
-          )}
-        </Box>
-      </Paper>
+              <RatingBadge rating={drink.rating} size="lg" />
+            </Box>
+
+            {/* Info grid */}
+            {info.length > 0 && (
+              <>
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                  {info.map(({ label, value }) => (
+                    <Grid item xs={6} sm={4} key={label}>
+                      <Typography variant="caption" color="text.disabled" sx={{ display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+                        {label}
+                      </Typography>
+                      <Typography variant="body2" color="text.primary" fontWeight={500} mt={0.25}>{value}</Typography>
+                    </Grid>
+                  ))}
+                </Grid>
+                <Divider sx={{ mb: 2 }} />
+              </>
+            )}
+
+            {/* Notes */}
+            {drink.comment && (
+              <Box mb={2}>
+                <Typography variant="caption" color="text.disabled" sx={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, display: 'block', mb: 0.75 }}>
+                  Tasting Notes
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
+                  {drink.comment}
+                </Typography>
+              </Box>
+            )}
+
+            {/* Tags row */}
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2.5 }}>
+              {drink.would_buy_again ? (
+                <Chip icon={<CheckCircleRounded />} label="Would have again" size="small" color="success" variant="outlined" />
+              ) : null}
+              {daysSince != null && daysSince >= 0 && (
+                <Chip label={daysSince === 0 ? 'Tried today' : daysSince === 1 ? 'Tried yesterday' : `${daysSince} days ago`}
+                  size="small" variant="outlined" sx={{ color: 'text.secondary', borderColor: 'divider' }} />
+              )}
+            </Box>
+
+            {/* Actions */}
+            {canManageDrink && (
+              <>
+                <Divider sx={{ mb: 2 }} />
+                <Box sx={{ display: 'flex', gap: 1.5 }}>
+                  <Button component={Link} to={`/edit/${drink.id}`} variant="contained" startIcon={<EditRounded />}>
+                    Edit
+                  </Button>
+                  <Button variant="outlined" color="error" startIcon={<DeleteRounded />} onClick={() => setConfirm(true)}>
+                    Delete
+                  </Button>
+                </Box>
+              </>
+            )}
+          </Box>
+        </Paper>
+      </Fade>
 
       <ConfirmDialog
         open={confirm}
@@ -170,19 +235,37 @@ export default function DrinkDetail() {
       <Dialog
         open={photoFullscreen}
         onClose={() => setPhotoFullscreen(false)}
-        maxWidth="lg"
+        maxWidth={false}
         fullWidth
         PaperProps={{
+          onClick: () => setPhotoFullscreen(false),
           sx: {
             bgcolor: '#000',
-            backgroundImage: `url('${drink.photo_path}')`,
-            backgroundSize: 'contain',
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'center',
-            minHeight: '80vh',
+            maxWidth: '95vw',
+            maxHeight: '95vh',
+            m: 1,
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            border: 'none',
           },
         }}
       >
+        {drink.photo_path && (
+          <Box
+            component="img"
+            src={drink.photo_path}
+            alt={drink.name}
+            sx={{
+              maxWidth: '100%',
+              maxHeight: '90vh',
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
+        )}
         <IconButton
           onClick={() => setPhotoFullscreen(false)}
           sx={{
@@ -197,7 +280,19 @@ export default function DrinkDetail() {
         >
           <CloseRounded />
         </IconButton>
+        <Typography variant="caption" sx={{
+          position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)',
+          color: 'rgba(255,255,255,0.5)', pointerEvents: 'none',
+        }}>
+          Click anywhere to close
+        </Typography>
       </Dialog>
+
+      {/* Copied toast */}
+      <Snackbar open={copied} autoHideDuration={2000} onClose={() => setCopied(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert severity="success" variant="filled" sx={{ width: '100%' }}>Link copied!</Alert>
+      </Snackbar>
     </Box>
   )
 }

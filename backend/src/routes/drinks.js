@@ -14,7 +14,7 @@ const upload = multer({
     cb(null, /^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)),
 });
 
-const VALID_SORTS  = ['created_at', 'date_tried', 'rating', 'name', 'brewery', 'category'];
+const VALID_SORTS  = ['created_at', 'date_tried', 'rating', 'name', 'brewery', 'category', 'abv', 'country'];
 const VALID_ORDERS = ['asc', 'desc'];
 
 const canCreateDrinks = (req) => ['admin', 'contributor'].includes(req.session?.role);
@@ -59,10 +59,19 @@ router.get('/stats', (_, res) => {
   const topStyles   = db.prepare(`SELECT style, COUNT(*) AS count, ROUND(AVG(rating),1) AS avgRating FROM beers WHERE style IS NOT NULL AND style != '' GROUP BY style ORDER BY count DESC LIMIT 10`).all();
   const topCountries= db.prepare(`SELECT country, COUNT(*) AS count, ROUND(AVG(rating),1) AS avgRating FROM beers WHERE country IS NOT NULL AND country != '' GROUP BY country ORDER BY count DESC LIMIT 10`).all();
   const topDrinks   = db.prepare('SELECT * FROM beers ORDER BY rating DESC, created_at DESC LIMIT 5').all();
+  const byContainer = db.prepare(`SELECT container, COUNT(*) AS count FROM beers WHERE container IS NOT NULL AND container != '' GROUP BY container ORDER BY count DESC`).all();
+  const monthlyCount = db.prepare(`SELECT substr(date_tried,1,7) AS month, COUNT(*) AS count FROM beers WHERE date_tried IS NOT NULL GROUP BY month ORDER BY month DESC LIMIT 12`).all();
+  const recentDrinks = db.prepare('SELECT * FROM beers ORDER BY created_at DESC LIMIT 5').all();
+  const uniqueBreweries = db.prepare("SELECT COUNT(DISTINCT brewery) AS n FROM beers WHERE brewery IS NOT NULL AND brewery != ''").get().n;
+  const uniqueCountries = db.prepare("SELECT COUNT(DISTINCT country) AS n FROM beers WHERE country IS NOT NULL AND country != ''").get().n;
+  const highestRated = db.prepare('SELECT * FROM beers ORDER BY rating DESC LIMIT 1').get();
+  const lowestRated  = db.prepare('SELECT * FROM beers ORDER BY rating ASC LIMIT 1').get();
 
   res.json({ total, avgRating: Math.round(avg * 10) / 10,
     wouldBuyAgainPct: Math.round((wouldBuy / total) * 100),
-    ratingDistribution: ratingDist, byCategory, topStyles, topCountries, topDrinks });
+    ratingDistribution: ratingDist, byCategory, topStyles, topCountries, topDrinks,
+    byContainer, monthlyCount, recentDrinks, uniqueBreweries, uniqueCountries,
+    highestRated, lowestRated });
 });
 
 // GET /api/drinks/calendar
@@ -80,7 +89,7 @@ router.get('/calendar', (req, res) => {
 
 // GET /api/drinks/export.csv — download all drinks as a spreadsheet-friendly CSV
 const CSV_COLUMNS = [
-  'id', 'name', 'brewery', 'style', 'abv', 'country', 'category',
+  'id', 'name', 'brewery', 'style', 'abv', 'country', 'category', 'container',
   'rating', 'would_buy_again', 'comment', 'location', 'date_tried', 'created_at',
 ];
 const csvCell = (val) => {
