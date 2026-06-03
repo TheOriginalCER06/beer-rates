@@ -36,12 +36,8 @@ export default function LoginPage() {
         <Box sx={{ width: '100%', maxWidth: 400 }}>
           {/* Branding */}
           <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Typography sx={{ fontSize: 48, mb: 1, lineHeight: 1 }}>🍺</Typography>
-            <Typography variant="h4" fontWeight={800} sx={{ color: 'primary.main', letterSpacing: '-0.02em' }}>
-              Drikke vurderinger
-            </Typography>
             <Typography variant="body2" color="text.secondary" mt={0.75}>
-              Sign in to log and rate your drinks
+              Sign in to continue
             </Typography>
           </Box>
 
@@ -86,9 +82,9 @@ export default function LoginPage() {
             </form>
           </Paper>
 
-          <Typography variant="caption" color="text.disabled" sx={{ display: 'block', textAlign: 'center', mt: 3, lineHeight: 1.6 }}>
+          {/* <Typography variant="caption" color="text.disabled" sx={{ display: 'block', textAlign: 'center', mt: 3, lineHeight: 1.6 }}>
             First time? Check Docker logs for the admin password
-          </Typography>
+          </Typography> */}
         </Box>
       </Fade>
     </Box>
