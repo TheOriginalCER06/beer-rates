@@ -1,0 +1,10 @@
+{% autoescape off %}Subject: Your account is approved
+
+Hi {{ user.username }},
+
+your Beer Rates account has been approved. You can now log and rate drinks:
+
+{{ site_url }}
+
+Cheers!
+{% endautoescape %}

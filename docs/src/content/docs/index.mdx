@@ -1,0 +1,32 @@
+---
+title: Beer Rates
+description: Logg og vurder øl, vin, cocktailer og mer.
+template: splash
+hero:
+  tagline: Logg og vurder øl, vin, cocktailer og mer – med bilder, strekkoder, statistikk og kalender. På nett og som app.
+  actions:
+    - text: Kom i gang
+      link: /guide/getting-started/
+      icon: right-arrow
+    - text: Åpne appen
+      link: https://xn--l-4ga.cer06.no
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+	<Card title="Bilde, beskjæring og strekkode" icon="seti:image">
+		Ta bilde med telefonen, beskjær det selv, skann strekkoden eller la telefonen lese etiketten.
+	</Card>
+	<Card title="Virker uten nett" icon="rocket">
+		Drikker du lagrer uten dekning, lastes opp av seg selv når du er på nett igjen.
+	</Card>
+	<Card title="Android, iPhone og nett" icon="laptop">
+		Samme app overalt: installer Android-appen, legg nettsiden til på hjemskjermen, eller bruk nettleseren.
+	</Card>
+	<Card title="Sammen med andre" icon="star">
+		Se hva de andre har smakt, skål for drikkene deres og sammenlign statistikk.
+	</Card>
+</CardGrid>

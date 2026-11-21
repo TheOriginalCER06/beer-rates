@@ -1,0 +1,11 @@
+{% autoescape off %}Subject: New user: {{ new_user.username }}
+
+{{ new_user.username }}{% if new_user.email %} ({{ new_user.email }}){% endif %} created a Beer Rates account.
+{% if new_user.is_approved %}
+The account is already active (approval is turned off).{% else %}
+The account is waiting for approval:{% endif %}
+
+{{ site_url }}/manage?tab=users
+
+You can turn these emails off under Profile.
+{% endautoescape %}

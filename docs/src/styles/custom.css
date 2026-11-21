@@ -1,0 +1,30 @@
+/* Beer Rates colours (app icon): #2b1a0b stout brown, #f59e0b amber. */
+:root {
+	--sl-color-accent-low: #3b2410;
+	--sl-color-accent: #f8bf2a;
+	--sl-color-accent-high: #fff0c7;
+	--sl-color-bg-nav: #2b1a0b;
+	--sl-color-hairline-shade: #523219;
+}
+
+:root[data-theme='light'] {
+	--sl-color-accent-low: #ffefc7;
+	--sl-color-accent: #b46c05;
+	--sl-color-accent-high: #523219;
+	--sl-color-bg-nav: #2b1a0b;
+	--sl-color-hairline-shade: #523219;
+}
+
+/* Header in the app colours in both themes. */
+.header {
+	border-bottom: 3px solid #f59e0b;
+}
+.header,
+.header .site-title,
+.header button,
+.header a {
+	color: #fff;
+}
+.header .site-title {
+	color: #f8bf2a;
+}

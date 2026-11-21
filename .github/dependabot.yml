@@ -1,0 +1,54 @@
+# Weekly dependency update PRs. Minor and patch updates are grouped into one PR per
+# ecosystem and folder, so the list stays short; major updates come one by one.
+version: 2
+
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule: { interval: weekly, day: monday }
+    groups:
+      python:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly, day: monday }
+    groups:
+      frontend:
+        update-types: [minor, patch]
+    ignore:
+      # Matches the Node major the images and CI run.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: gradle
+    directory: /frontend/android
+    schedule: { interval: monthly }
+    groups:
+      android:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /docs
+    schedule: { interval: weekly, day: monday }
+    groups:
+      docs:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directories: [/backend, /frontend, /docs]
+    schedule: { interval: weekly, day: monday }
+    groups:
+      images:
+        update-types: [minor, patch]
+    ignore:
+      # Node 22 is the LTS the images and CI run on; a new major is a manual decision.
+      - dependency-name: node
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
+    groups:
+      actions:
+        patterns: ["*"]

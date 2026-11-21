@@ -1,0 +1,207 @@
+/* Layout rules Mantine doesn't cover: safe areas (notch, rounded corners, gesture bar), the
+   bottom tab bar, and no rubber-band scrolling of the whole page in the apps. */
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --tabbar-height: 64px;
+}
+
+html,
+body {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  /* No horizontal page scroll, ever. */
+  overflow-x: hidden;
+}
+
+.app-header {
+  padding-top: var(--safe-top);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+
+.app-main {
+  padding-left: max(var(--mantine-spacing-md), var(--safe-left));
+  padding-right: max(var(--mantine-spacing-md), var(--safe-right));
+}
+
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 150;
+  height: calc(var(--tabbar-height) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+  display: flex;
+  align-items: stretch;
+  background: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+  border-top: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+.keyboard-open .tabbar {
+  display: none;
+}
+
+.tabbar a {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--mantine-color-dimmed);
+  min-width: 0;
+}
+
+.tabbar a.active {
+  color: var(--mantine-color-beer-6);
+}
+
+.tabbar .add {
+  flex: 0 0 72px;
+}
+
+.tabbar .add span.fab {
+  width: 52px;
+  height: 52px;
+  margin-top: -18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mantine-color-beer-5);
+  color: var(--mantine-color-stout-9);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Room for the tab bar below the page content on phones. */
+.with-tabbar {
+  padding-bottom: calc(var(--tabbar-height) + var(--safe-bottom) + var(--mantine-spacing-lg));
+}
+
+/* A bar of buttons that stays at the bottom of long forms, above the tab bar. */
+.sticky-actions {
+  position: sticky;
+  bottom: calc(var(--tabbar-height) + var(--safe-bottom));
+  z-index: 10;
+  padding: var(--mantine-spacing-sm) 0;
+  background: var(--mantine-color-body);
+}
+
+@media (min-width: 48em) {
+  .sticky-actions {
+    bottom: 0;
+  }
+}
+
+.keyboard-open .sticky-actions {
+  bottom: 0;
+}
+
+/* Chips that scroll sideways instead of wrapping (category filter). */
+.chip-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chip-row > * {
+  flex: 0 0 auto;
+}
+
+.drink-thumb {
+  width: 72px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: var(--mantine-radius-md);
+  flex: 0 0 auto;
+  background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+}
+
+.cropper {
+  position: relative;
+  width: 100%;
+  height: min(62vh, 560px);
+  background: #111;
+  border-radius: var(--mantine-radius-md);
+  overflow: hidden;
+  touch-action: none;
+}
+
+.scanner-video {
+  width: 100%;
+  max-height: 60vh;
+  border-radius: var(--mantine-radius-md);
+  background: #000;
+  object-fit: cover;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.calendar-day {
+  aspect-ratio: 1 / 1.1;
+  border-radius: var(--mantine-radius-sm);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+  min-width: 0;
+}
+
+.calendar-day.today {
+  border-color: var(--mantine-color-beer-5);
+}
+
+.calendar-day.selected {
+  background: light-dark(var(--mantine-color-beer-1), var(--mantine-color-dark-4));
+}
+
+.calendar-day.outside {
+  opacity: 0.35;
+}
+
+.dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+}
+
+.dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.bar {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--mantine-color-beer-5);
+  min-width: 2px;
+}

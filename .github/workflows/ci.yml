@@ -1,0 +1,169 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DJANGO_DEBUG: "true"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: python manage.py makemigrations --check --dry-run
+      - run: python manage.py check
+      - run: python manage.py test
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  docs:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs
+    env:
+      ASTRO_TELEMETRY_DISABLED: "1"
+      # Throwaway password: this job only checks that the docs build and that admin pages get
+      # encrypted. Nothing is published; the real password only lives in .env on the CT.
+      DOCS_ADMIN_PASSWORD: ci-only-throwaway-password
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: pip install -r requirements-dev.txt
+        working-directory: backend
+      - run: pip-audit -r requirements.txt
+        working-directory: backend
+      # Bandit's rules via ruff: S101 asserts (tests) and S105-S107 "hardcoded passwords" (test data,
+      # settings names) are deliberate.
+      - run: ruff check --select S --ignore S101,S105,S106,S107,S311 .
+        working-directory: backend
+      - run: npm ci
+        working-directory: frontend
+      - run: npm audit --audit-level=high
+        working-directory: frontend
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: cp .env.example .env
+      - run: docker compose --profile docs build
+        env:
+          DOCS_ADMIN_PASSWORD: ci-only-throwaway-password
+
+  # The Android app. Every run makes an APK you can download from the run's page (Artifacts);
+  # a tag vX.Y.Z also attaches it to the GitHub release. Signed with the release key when the
+  # ANDROID_KEYSTORE_* secrets are set (needed to install updates over an earlier version).
+  android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - name: Firebase (push notifications), if set up
+        if: env.GOOGLE_SERVICES_JSON != ''
+        run: |
+          printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          echo "VITE_NATIVE_PUSH=true" >> "$GITHUB_ENV"
+      - run: npm run build && npx cap sync android
+      - name: Build APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          export APP_VERSION_NAME="$version" APP_VERSION_CODE="${{ github.run_number }}"
+          cd android
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/release.jks"
+            ./gradlew --no-daemon assembleRelease
+            cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/beer-rates-$version.apk"
+          else
+            ./gradlew --no-daemon assembleDebug
+            cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/beer-rates-$version-debug.apk"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: beer-rates-android
+          path: ${{ runner.temp }}/beer-rates-*.apk
+          retention-days: 30
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: ${{ runner.temp }}/beer-rates-*.apk

@@ -1,0 +1,32 @@
+---
+title: Beer Rates
+description: Log and rate beer, wine, cocktails and more.
+template: splash
+hero:
+  tagline: Log and rate beer, wine, cocktails and more – with photos, barcodes, stats and a calendar. On the web and as an app.
+  actions:
+    - text: Get started
+      link: /en/guide/getting-started/
+      icon: right-arrow
+    - text: Open the app
+      link: https://xn--l-4ga.cer06.no
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+	<Card title="Photo, crop and barcode" icon="seti:image">
+		Take a photo with your phone, crop it yourself, scan the barcode, or let the phone read the label.
+	</Card>
+	<Card title="Works offline" icon="rocket">
+		Drinks saved without a connection upload by themselves when you're back online.
+	</Card>
+	<Card title="Android, iPhone and web" icon="laptop">
+		The same app everywhere: install the Android app, add the website to your home screen, or use the browser.
+	</Card>
+	<Card title="With friends" icon="star">
+		See what the others have tried, cheer their drinks and compare stats.
+	</Card>
+</CardGrid>
