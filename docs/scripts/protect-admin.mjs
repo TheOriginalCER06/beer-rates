@@ -30,7 +30,7 @@ const ADMIN_DIRS = [
 		dir: 'admin',
 		template: {
 			title: 'Kun for administratorer',
-			instructions: 'Denne siden er beskyttet. Skriv inn admin-passordet for dokumentasjonen.<br><a href="/">← Tilbake til dokumentasjonen</a>',
+			instructions: 'Denne siden er beskyttet. Skriv inn admin-passordet for dokumentasjonen.<br><a href="/docs/">← Tilbake til dokumentasjonen</a>',
 			button: 'Lås opp',
 			placeholder: 'Passord',
 			remember: 'Husk meg i 30 dager',
@@ -43,7 +43,7 @@ const ADMIN_DIRS = [
 		dir: 'en/admin',
 		template: {
 			title: 'Administrators only',
-			instructions: 'This page is protected. Enter the docs admin password.<br><a href="/en/">← Back to the docs</a>',
+			instructions: 'This page is protected. Enter the docs admin password.<br><a href="/docs/en/">← Back to the docs</a>',
 			button: 'Unlock',
 			placeholder: 'Password',
 			remember: 'Remember me for 30 days',

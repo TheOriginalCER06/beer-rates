@@ -74,8 +74,9 @@ services:
       backend:
         condition: service_healthy
 
-  # Documentation site (optional): enable with COMPOSE_PROFILES=docs in .env, then point
-  # docs.øl.cer06.no at this CT on DOCS_PORT. Needs DOCS_ADMIN_PASSWORD at build time.
+  # Documentation site (optional): enable with COMPOSE_PROFILES=docs in .env. The web service
+  # serves it at /docs/, so it needs no port or domain of its own. Needs DOCS_ADMIN_PASSWORD at
+  # build time (the admin pages are encrypted with it).
   docs:
     profiles: [docs]
     build:
@@ -84,8 +85,6 @@ services:
         - docs_admin_password
     restart: unless-stopped
     security_opt: [no-new-privileges:true]
-    ports:
-      - "${DOCS_PORT:-3001}:80"
 
   # Nightly backups of the database and photos (optional): add `backup` to COMPOSE_PROFILES.
   # See scripts/backup-loop.sh.

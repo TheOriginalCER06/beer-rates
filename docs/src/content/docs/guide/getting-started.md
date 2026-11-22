@@ -17,7 +17,7 @@ Beer Rates ligger på **[øl.cer06.no](https://xn--l-4ga.cer06.no)**. Når offen
 
 | Telefon | Slik |
 |---|---|
-| **Android** | Installer Beer Rates-appen (APK) fra admin, se [Appen og bruk uten nett](/guide/app/). |
+| **Android** | Installer Beer Rates-appen (APK) fra admin, se [Appen og bruk uten nett](/docs/guide/app/). |
 | **iPhone** | Åpne siden i Safari → **Del → Legg til på Hjem-skjerm**. Den åpnes i fullskjerm som en app. |
 | **PC** | Bruk nettleseren. |
 

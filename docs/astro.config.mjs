@@ -4,8 +4,9 @@ import { defineConfig } from 'astro/config';
 
 // https://astro.build/config
 export default defineConfig({
-	// docs.øl.cer06.no
-	site: 'https://docs.xn--l-4ga.cer06.no',
+	// Served at øl.cer06.no/docs: the app's nginx forwards /docs/ to the docs container.
+	site: 'https://xn--l-4ga.cer06.no',
+	base: '/docs',
 	integrations: [
 		starlight({
 			title: { nb: 'Beer Rates', en: 'Beer Rates' },

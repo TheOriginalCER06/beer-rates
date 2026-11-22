@@ -46,4 +46,4 @@ Beskjær tett rundt etiketten først: det gjør lesingen mye bedre.
 
 ## Uten nett?
 
-Du kan lagre likevel: drikken lagres på telefonen og lastes opp av seg selv senere. Se [Appen og bruk uten nett](/guide/app/).
+Du kan lagre likevel: drikken lagres på telefonen og lastes opp av seg selv senere. Se [Appen og bruk uten nett](/docs/guide/app/).

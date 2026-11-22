@@ -14,7 +14,7 @@ GitHub Actions builds the APK on every push (job **android** in `.github/workflo
 - **Any run**: the run's page → *Artifacts* → `beer-rates-android` (a zip with the APK).
 - **Releases**: tagging `vX.Y.Z` also attaches the APK to the GitHub release.
 
-Copy the APK to the phone and open it. To make it easy for others, put it somewhere they can download it (e.g. a shared folder) and send them [the user guide](/en/guide/app/).
+Copy the APK to the phone and open it. To make it easy for others, put it somewhere they can download it (e.g. a shared folder) and send them [the user guide](/docs/en/guide/app/).
 
 ### Signing key (do this once)
 

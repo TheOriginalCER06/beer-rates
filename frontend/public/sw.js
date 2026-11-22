@@ -44,7 +44,8 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return
   const url = new URL(request.url)
   if (url.origin !== self.location.origin) return
-  if (/^\/(graphql|api|admin|static)\//.test(url.pathname)) return
+  // Data, the Django admin and the docs (a separate site under /docs/) are left alone.
+  if (/^\/(graphql|api|admin|static|docs)(\/|$)/.test(url.pathname)) return
 
   // App pages: network first, the saved shell when offline.
   if (request.mode === 'navigate') {

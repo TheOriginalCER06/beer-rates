@@ -46,4 +46,4 @@ Crop close to the label first: that makes the reading much better.
 
 ## No connection?
 
-You can save anyway: the drink is kept on the phone and uploaded by itself later. See [The app and offline use](/en/guide/app/).
+You can save anyway: the drink is kept on the phone and uploaded by itself later. See [The app and offline use](/docs/en/guide/app/).

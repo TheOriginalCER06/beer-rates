@@ -73,6 +73,8 @@ fi
 # One image at a time: building the app and the docs in parallel (two npm installs) can
 # exhaust the memory of a small CT. The site keeps running while this happens.
 step "Building images"
+# Ready-made images (Postgres) are downloaded now too, not after the swap below.
+docker compose pull --quiet --ignore-buildable
 services="$(docker compose config --services)"
 for service in backend web docs; do
     if grep -qx "$service" <<<"$services"; then

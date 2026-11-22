@@ -88,6 +88,6 @@ It can be run again: what was imported before is skipped. When everything looks 
 
 `øl.cer06.no` (`xn--l-4ga.cer06.no`) is already in Nginx Proxy Manager, forwarding to `192.168.20.234:3000`. The proxy must pass `Host` and `X-Forwarded-Proto: https` (NPM does by default), and allow uploads of at least 16 MB (NPM: *Advanced* → `client_max_body_size 16m;` if photo uploads fail with 413).
 
-## Docs on the same CT (optional)
+## Docs (optional)
 
-In `.env`: `COMPOSE_PROFILES=docs`, `DOCS_PORT=3001` and `DOCS_ADMIN_PASSWORD=<12+ characters>`. Run `scripts/update.sh`, then add `docs.øl.cer06.no` → `192.168.20.234:3001` in NPM.
+In `.env`: `COMPOSE_PROFILES=docs` and `DOCS_ADMIN_PASSWORD=<12+ characters>` (the password for the admin pages), then run `scripts/update.sh`. The docs are served at **øl.cer06.no/docs**, through the app's own nginx, so nothing changes in NPM.

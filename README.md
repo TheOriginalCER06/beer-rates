@@ -3,7 +3,7 @@
 Self-hosted app for logging and rating beer, wine, cocktails and more – with photos, barcodes, statistics and a calendar. Website, installable web app and Android/iOS app from one codebase. Runs on a Proxmox CT with Docker Compose, the same way as BLAP.
 
 - **App:** <https://øl.cer06.no> (`xn--l-4ga.cer06.no`), CT `192.168.20.234`, port 3000
-- **Docs:** `docs/` (Norwegian + English; admin pages are password-protected), optionally served from the CT at docs.øl.cer06.no
+- **Docs:** `docs/` (Norwegian + English; admin pages are password-protected), optionally served by the app at øl.cer06.no/docs
 - **Changes:** [CHANGELOG.md](CHANGELOG.md). The version is in `backend/pyproject.toml` and shown in the app footer.
 
 ## Features

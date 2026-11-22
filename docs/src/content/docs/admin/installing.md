@@ -66,6 +66,6 @@ Fra fil: `scripts/import-old.sh /root/old-data.tar.gz`. Brukere (med passord, ro
 
 `øl.cer06.no` (`xn--l-4ga.cer06.no`) er satt opp i Nginx Proxy Manager mot `192.168.20.234:3000`. Proxyen må sende `Host` og `X-Forwarded-Proto: https` (NPM gjør det), og tillate opplasting på minst 16 MB (NPM: *Advanced* → `client_max_body_size 16m;` hvis bildeopplasting feiler med 413).
 
-## Dokumentasjonen på samme CT (valgfritt)
+## Dokumentasjonen (valgfritt)
 
-I `.env`: `COMPOSE_PROFILES=docs`, `DOCS_PORT=3001`, `DOCS_ADMIN_PASSWORD=<12+ tegn>`. Kjør `scripts/update.sh` og legg til `docs.øl.cer06.no` → `192.168.20.234:3001` i NPM.
+I `.env`: `COMPOSE_PROFILES=docs` og `DOCS_ADMIN_PASSWORD=<12+ tegn>` (passordet for admin-sidene), og kjør `scripts/update.sh`. Dokumentasjonen ligger på **øl.cer06.no/docs**, gjennom appens egen nginx, så ingenting endres i NPM.
