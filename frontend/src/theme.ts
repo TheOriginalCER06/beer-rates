@@ -1,6 +1,6 @@
 import { createTheme, type MantineColorsTuple } from '@mantine/core'
 
-// Amber like a pale ale, and a dark stout brown for the header (see branding/build_icons.py).
+// Amber like a pale ale, and a dark stout brown for the header (the background of the app icons, see branding/build_icons.mjs).
 const beer: MantineColorsTuple = [
   '#fff8e6',
   '#ffefc7',

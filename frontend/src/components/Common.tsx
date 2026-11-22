@@ -47,7 +47,7 @@ export function AuthCard({ title, children }: { title: string; children: ReactNo
       <Stack w="100%" maw={420}>
         <Group justify="space-between" wrap="nowrap">
           <Group gap="xs" wrap="nowrap">
-            <Logo size={44} />
+            <Logo size={44} background />
             <Text fw={800} size="xl" c="beer.7">
               {t('app.title')}
             </Text>
