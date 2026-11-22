@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.0.3] - 2026-11-22
+
+### Fixed
+- The docs admin pages remember the password: "Remember me" is ticked by default, so after one login the other admin pages open without asking again (for 30 days on that browser; untick it on a shared computer).
+
 ## [2.0.2] - 2026-11-22
 
 ### Fixed

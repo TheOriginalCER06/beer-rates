@@ -9,7 +9,7 @@
  *   didn't pass this script.
  */
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -112,6 +112,20 @@ for (const { dir, template } of ADMIN_DIRS) {
 		encrypted += files.length;
 	} finally {
 		rmSync(tmp, { recursive: true, force: true });
+	}
+}
+
+// Every admin page is encrypted on its own, so without "Remember me" each page asks for the password
+// again. Tick it by default (it can still be unticked on a shared computer): the browser then keeps a
+// hash of the password for REMEMBER_DAYS and opens the other admin pages by itself.
+const REMEMBER_BOX = '<input id="staticrypt-remember" type="checkbox" name="remember" />';
+for (const { dir } of ADMIN_DIRS) {
+	const target = join(DIST, dir);
+	if (!existsSync(target)) continue;
+	for (const file of htmlFiles(target)) {
+		const html = readFileSync(file, 'utf8');
+		if (!html.includes(REMEMBER_BOX)) fail(`${relative(DIST, file)}: the "Remember me" checkbox wasn't found.`);
+		writeFileSync(file, html.replace(REMEMBER_BOX, REMEMBER_BOX.replace(' />', ' checked />')));
 	}
 }
 
