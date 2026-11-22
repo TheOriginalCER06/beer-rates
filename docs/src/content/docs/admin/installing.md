@@ -69,3 +69,5 @@ Fra fil: `scripts/import-old.sh /root/old-data.tar.gz`. Brukere (med passord, ro
 ## Dokumentasjonen (valgfritt)
 
 I `.env`: `COMPOSE_PROFILES=docs` og `DOCS_ADMIN_PASSWORD=<12+ tegn>` (passordet for admin-sidene), og kjør `scripts/update.sh`. Dokumentasjonen ligger på **øl.cer06.no/docs**, gjennom appens egen nginx, så ingenting endres i NPM.
+
+For å bytte passord: endre den linjen (ha `DOCS_ADMIN_PASSWORD` bare én gang i `.env`) og kjør `scripts/update.sh`, som merker det nye passordet og bygger dokumentasjonen på nytt med det. `docker compose up -d` alene holder ikke, fordi passordet bakes inn når dokumentasjonen bygges.

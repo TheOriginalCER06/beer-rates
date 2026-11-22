@@ -37,3 +37,6 @@ Thumbs.db
 # Claude Code local settings
 .claude/settings.local.json
 CLAUDE.md
+
+# Written by scripts/update.sh: a hash of the docs admin password, to notice when it changes.
+.docs-password.sha256

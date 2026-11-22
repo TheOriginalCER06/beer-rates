@@ -91,3 +91,5 @@ It can be run again: what was imported before is skipped. When everything looks 
 ## Docs (optional)
 
 In `.env`: `COMPOSE_PROFILES=docs` and `DOCS_ADMIN_PASSWORD=<12+ characters>` (the password for the admin pages), then run `scripts/update.sh`. The docs are served at **øl.cer06.no/docs**, through the app's own nginx, so nothing changes in NPM.
+
+To change the password, edit that line (keep `DOCS_ADMIN_PASSWORD` in `.env` only once) and run `scripts/update.sh`: it notices the new password and rebuilds the docs with it. `docker compose up -d` alone isn't enough, because the password is baked into the docs when they're built.

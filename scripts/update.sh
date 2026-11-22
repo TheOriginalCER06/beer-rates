@@ -35,6 +35,12 @@ if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
 fi
 mkdir -p secrets
 
+# A setting that appears twice in .env: Compose uses the last one, which is easy to miss.
+dupes="$(sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' .env | sort | uniq -d | tr '\n' ' ')"
+if [ -n "$dupes" ]; then
+    printf '\033[33mWarning: set more than once in .env, so only the last line counts: %s\033[0m\n' "$dupes"
+fi
+
 OLD_VERSION="$(version)"
 step "Installed version: ${OLD_VERSION:-old Node.js app}"
 
@@ -76,9 +82,18 @@ step "Building images"
 # Ready-made images (Postgres) are downloaded now too, not after the swap below.
 docker compose pull --quiet --ignore-buildable
 services="$(docker compose config --services)"
+# The docs admin password is baked into the docs image, and Docker's build cache doesn't notice
+# when it changes, so the docs are built from scratch whenever it has. Only a hash is kept here.
+docs_password="$(env_value DOCS_ADMIN_PASSWORD | sha256sum | cut -d' ' -f1)"
 for service in backend web docs; do
     if grep -qx "$service" <<<"$services"; then
-        docker compose build "$service"
+        if [ "$service" = docs ] && [ "$docs_password" != "$(cat .docs-password.sha256 2>/dev/null)" ]; then
+            echo "The docs admin password has changed: building the docs from scratch."
+            docker compose build --no-cache docs
+            (umask 077 && echo "$docs_password" >.docs-password.sha256)
+        else
+            docker compose build "$service"
+        fi
     fi
 done
 

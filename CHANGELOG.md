@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.2] - 2026-11-22
+
+### Fixed
+- A new docs admin password now takes effect: `scripts/update.sh` rebuilds the docs from scratch when `DOCS_ADMIN_PASSWORD` changes (Docker's build cache didn't notice).
+- `scripts/update.sh` warns when a setting appears twice in `.env`, where only the last line counts.
+
 ## [2.0.1] - 2026-11-22
 
 ### Changed
