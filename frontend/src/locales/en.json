@@ -1,5 +1,7 @@
 {
-  "app": { "title": "Drikke Vurderinger" },
+  "app": {
+    "title": "Drikke Vurderinger"
+  },
   "nav": {
     "drinks": "Drinks",
     "calendar": "Calendar",
@@ -34,9 +36,25 @@
     "ALCOHOL_FREE": "Alcohol free",
     "OTHER": "Other"
   },
-  "container": { "BOTTLE": "Bottle", "CAN": "Can", "DRAFT": "Draft", "GLASS": "Glass", "OTHER": "Other" },
-  "role": { "ADMIN": "Admin", "CONTRIBUTOR": "Contributor", "VIEWER": "Viewer" },
-  "sort": { "DATE": "Date", "RATING": "Rating", "NAME": "Name", "ABV": "ABV", "ADDED": "Added" },
+  "container": {
+    "BOTTLE": "Bottle",
+    "CAN": "Can",
+    "DRAFT": "Draft",
+    "GLASS": "Glass",
+    "OTHER": "Other"
+  },
+  "role": {
+    "ADMIN": "Admin",
+    "CONTRIBUTOR": "Contributor",
+    "VIEWER": "Viewer"
+  },
+  "sort": {
+    "DATE": "Date",
+    "RATING": "Rating",
+    "NAME": "Name",
+    "ABV": "ABV",
+    "ADDED": "Added"
+  },
   "drink": {
     "name": "Name",
     "producer": "Brewery / producer",
@@ -132,8 +150,16 @@
       "vivino": "Vivino"
     }
   },
-  "cheers": { "give": "Cheers", "done": "Cheered", "own": "Your own drink" },
-  "calendar": { "previous": "Previous month", "next": "Next month", "nothing": "Nothing logged this day." },
+  "cheers": {
+    "give": "Cheers",
+    "done": "Cheered",
+    "own": "Your own drink"
+  },
+  "calendar": {
+    "previous": "Previous month",
+    "next": "Next month",
+    "nothing": "Nothing logged this day."
+  },
   "stats": {
     "title": "Statistics",
     "allYears": "All years",
@@ -164,7 +190,9 @@
     "savedOffline": "Saved on the phone. It uploads by itself when you're online.",
     "photoQueued": "The drink is saved; the photo uploads when the connection is better."
   },
-  "offline": { "banner": "You're offline. Showing what was loaded last; new drinks are saved and uploaded later." },
+  "offline": {
+    "banner": "You're offline. Showing what was loaded last; new drinks are saved and uploaded later."
+  },
   "profile": {
     "settings": "Settings",
     "addEmail": "Add an email address to be able to reset your password.",
@@ -177,7 +205,10 @@
     "exportHint": "Download drinks as a spreadsheet.",
     "exportMine": "My drinks",
     "exportAll": "Everyone's",
-    "server": "Server: {{server}}"
+    "server": "Server: {{server}}",
+    "androidApp": "Android app",
+    "androidAppHint": "Install Drikke Vurderinger as an app on Android phones (Android 8 or newer). The first time, the phone asks you to allow installing apps from your browser.",
+    "androidAppDownload": "Download the app (APK)"
   },
   "push": {
     "title": "Notifications",

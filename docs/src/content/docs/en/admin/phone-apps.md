@@ -11,8 +11,8 @@ The Android and iOS apps are built with [Capacitor](https://capacitorjs.com/) fr
 
 GitHub Actions builds the APK on every push (job **android** in `.github/workflows/ci.yml`):
 
-- **Any run**: the run's page → *Artifacts* → `beer-rates-android` (a zip with the APK).
-- **Releases**: tagging `vX.Y.Z` also attaches the APK to the GitHub release.
+- **Any run**: the run's page → *Artifacts* → `drikke-vurderinger-android` (a zip with the APK).
+- **Releases**: tagging `vX.Y.Z` attaches the signed APK to a GitHub release, also under the fixed name `drikke-vurderinger.apk`, so [github.com/TheOriginalCER06/beer-rates/r…](https://github.com/TheOriginalCER06/beer-rates/releases/latest/download/drikke-vurderinger.apk) always gives the newest. The app's Profile page links there. A tag without the signing secrets fails on purpose.
 
 Copy the APK to the phone and open it. To make it easy for others, put it somewhere they can download it (e.g. a shared folder) and send them [the user guide](/docs/en/guide/app/).
 

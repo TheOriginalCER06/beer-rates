@@ -17,7 +17,7 @@ Drikke Vurderinger is at **[øl.cer06.no](https://xn--l-4ga.cer06.no)**. When pu
 
 | Phone | How |
 |---|---|
-| **Android** | Install the Drikke Vurderinger app (APK) from the admin, see [The app and offline use](/docs/en/guide/app/). |
+| **Android** | Install the app: **Profile → Download the app (APK)**, see [The app and offline use](/docs/en/guide/app/). |
 | **iPhone** | Open the site in Safari → **Share → Add to Home Screen**. It opens full screen like an app. |
 | **Computer** | Just use the browser. |
 

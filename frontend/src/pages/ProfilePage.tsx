@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@apollo/client/react'
 import { Alert, Badge, Button, Group, PasswordInput, Stack, Switch, Text, TextInput, Title } from '@mantine/core'
-import { IconBell, IconDownload, IconLogout, IconShieldCog } from '@tabler/icons-react'
+import { IconBell, IconBrandAndroid, IconDownload, IconLogout, IconShieldCog } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -18,7 +18,7 @@ import {
 } from '../graphql/operations'
 import { useLogout, useNotifyError, useNotifySuccess } from '../hooks'
 import { downloadExport } from '../lib/download'
-import { deviceName, isNative, serverLabel } from '../lib/platform'
+import { ANDROID_APK_URL, deviceName, isNative, serverLabel } from '../lib/platform'
 import {
   currentWebSubscription,
   nativePushBuilt,
@@ -231,6 +231,21 @@ export function ProfilePage() {
           </Group>
         </Stack>
       </Section>
+
+      {!isNative && (
+        <Section title={t('profile.androidApp')}>
+          <Stack gap="xs">
+            <Text size="sm" c="dimmed">
+              {t('profile.androidAppHint')}
+            </Text>
+            <Group>
+              <Button component="a" href={ANDROID_APK_URL} variant="light" leftSection={<IconBrandAndroid size={16} />}>
+                {t('profile.androidAppDownload')}
+              </Button>
+            </Group>
+          </Stack>
+        </Section>
+      )}
 
       {isNative && (
         <Text size="sm" c="dimmed">

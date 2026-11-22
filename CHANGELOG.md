@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.0.4] - 2026-11-22
+
+### Added
+- The first signed Android app: CI signs it and attaches it to each GitHub release, and **Profile → Download the app (APK)** on the website always gives the newest.
+
+### Fixed
+- In the Android app, the header and the tab bar keep clear of the status bar and the gesture bar.
+- The "Open the Django admin" link works in the app.
+
 ## [2.0.3] - 2026-11-22
 
 ### Fixed

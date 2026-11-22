@@ -41,6 +41,7 @@ import {
 import { useNotifyError, useNotifySuccess } from '../hooks'
 import { describeError } from '../lib/errors'
 import { formatDateTime, formatDay } from '../lib/format'
+import { apiUrl } from '../lib/platform'
 import { useUser } from '../me'
 
 const ROLES: Role[] = ['ADMIN', 'CONTRIBUTOR', 'VIEWER']
@@ -295,7 +296,7 @@ function SettingsTab() {
           <Text size="sm">{t('admin.appLogins')}</Text>
           <Text size="sm">{status.appLogins}</Text>
         </SimpleGrid>
-        <Button component="a" href="/admin/" target="_blank" variant="subtle" mt="sm" size="xs">
+        <Button component="a" href={apiUrl('/admin/')} target="_blank" variant="subtle" mt="sm" size="xs">
           {t('admin.djangoAdmin')}
         </Button>
       </Section>

@@ -1,5 +1,7 @@
 {
-  "app": { "title": "Drikke Vurderinger" },
+  "app": {
+    "title": "Drikke Vurderinger"
+  },
   "nav": {
     "drinks": "Drikke",
     "calendar": "Kalender",
@@ -34,9 +36,25 @@
     "ALCOHOL_FREE": "Alkoholfritt",
     "OTHER": "Annet"
   },
-  "container": { "BOTTLE": "Flaske", "CAN": "Boks", "DRAFT": "Fat", "GLASS": "Glass", "OTHER": "Annet" },
-  "role": { "ADMIN": "Admin", "CONTRIBUTOR": "Bidragsyter", "VIEWER": "Leser" },
-  "sort": { "DATE": "Dato", "RATING": "Karakter", "NAME": "Navn", "ABV": "Alkohol", "ADDED": "Lagt til" },
+  "container": {
+    "BOTTLE": "Flaske",
+    "CAN": "Boks",
+    "DRAFT": "Fat",
+    "GLASS": "Glass",
+    "OTHER": "Annet"
+  },
+  "role": {
+    "ADMIN": "Admin",
+    "CONTRIBUTOR": "Bidragsyter",
+    "VIEWER": "Leser"
+  },
+  "sort": {
+    "DATE": "Dato",
+    "RATING": "Karakter",
+    "NAME": "Navn",
+    "ABV": "Alkohol",
+    "ADDED": "Lagt til"
+  },
   "drink": {
     "name": "Navn",
     "producer": "Bryggeri / produsent",
@@ -132,8 +150,16 @@
       "vivino": "Vivino"
     }
   },
-  "cheers": { "give": "Skål", "done": "Skålt", "own": "Din egen drikk" },
-  "calendar": { "previous": "Forrige måned", "next": "Neste måned", "nothing": "Ingenting logget denne dagen." },
+  "cheers": {
+    "give": "Skål",
+    "done": "Skålt",
+    "own": "Din egen drikk"
+  },
+  "calendar": {
+    "previous": "Forrige måned",
+    "next": "Neste måned",
+    "nothing": "Ingenting logget denne dagen."
+  },
   "stats": {
     "title": "Statistikk",
     "allYears": "Alle år",
@@ -164,7 +190,9 @@
     "savedOffline": "Lagret på telefonen. Lastes opp av seg selv når du er på nett.",
     "photoQueued": "Drikken er lagret; bildet lastes opp når forbindelsen er bedre."
   },
-  "offline": { "banner": "Du er uten nett. Viser det som ble lastet sist; nye drikker lagres og lastes opp senere." },
+  "offline": {
+    "banner": "Du er uten nett. Viser det som ble lastet sist; nye drikker lagres og lastes opp senere."
+  },
   "profile": {
     "settings": "Innstillinger",
     "addEmail": "Legg inn e-post for å kunne tilbakestille passordet.",
@@ -177,7 +205,10 @@
     "exportHint": "Last ned drikker som regneark.",
     "exportMine": "Mine drikker",
     "exportAll": "Alle sine",
-    "server": "Server: {{server}}"
+    "server": "Server: {{server}}",
+    "androidApp": "Android-app",
+    "androidAppHint": "Installer Drikke Vurderinger som app på Android-telefoner (Android 8 eller nyere). Første gang spør telefonen om du vil tillate å installere apper fra nettleseren.",
+    "androidAppDownload": "Last ned appen (APK)"
   },
   "push": {
     "title": "Varsler",

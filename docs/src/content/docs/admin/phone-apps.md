@@ -11,8 +11,8 @@ Android- og iOS-appene bygges med [Capacitor](https://capacitorjs.com/) fra samm
 
 GitHub Actions bygger APK-en ved hver push (jobben **android** i `.github/workflows/ci.yml`):
 
-- **Hver kjøring**: kjøringens side → *Artifacts* → `beer-rates-android`.
-- **Utgivelser**: en tag `vX.Y.Z` legger også APK-en ved GitHub-utgivelsen.
+- **Hver kjøring**: kjøringens side → *Artifacts* → `drikke-vurderinger-android`.
+- **Utgivelser**: en tag `vX.Y.Z` legger den signerte APK-en ved en GitHub-utgivelse, også med det faste navnet `drikke-vurderinger.apk`, så [denne lenken](https://github.com/TheOriginalCER06/beer-rates/releases/latest/download/drikke-vurderinger.apk) alltid gir den nyeste. Profil-siden i appen lenker dit. En tag uten signerings-secrets feiler med vilje.
 
 ### Signeringsnøkkel (én gang)
 

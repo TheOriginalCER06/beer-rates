@@ -151,21 +151,32 @@ jobs:
           version="$(node -p "require('./package.json').version")"
           export APP_VERSION_NAME="$version" APP_VERSION_CODE="${{ github.run_number }}"
           cd android
+          mkdir -p "$RUNNER_TEMP/apk"
           if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
             echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
             export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/release.jks"
             ./gradlew --no-daemon assembleRelease
-            cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/beer-rates-$version.apk"
+            cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/apk/drikke-vurderinger-$version.apk"
+            # The same file under a fixed name, so .../releases/latest/download/drikke-vurderinger.apk
+            # always gives the newest release (the app's Profile page links there).
+            cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/apk/drikke-vurderinger.apk"
+            rm -f "$RUNNER_TEMP/release.jks"
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            # A debug build can't be updated by later signed versions, so never publish one as a release.
+            echo "::error::Releases must be signed: add the ANDROID_KEYSTORE_* secrets (docs: Admin → Phone apps)."
+            exit 1
           else
             ./gradlew --no-daemon assembleDebug
-            cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/beer-rates-$version-debug.apk"
+            cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/apk/drikke-vurderinger-$version-debug.apk"
           fi
       - uses: actions/upload-artifact@v4
         with:
-          name: beer-rates-android
-          path: ${{ runner.temp }}/beer-rates-*.apk
+          name: drikke-vurderinger-android
+          path: ${{ runner.temp }}/apk/drikke-vurderinger-*.apk
           retention-days: 30
       - uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/v')
         with:
-          files: ${{ runner.temp }}/beer-rates-*.apk
+          name: Drikke Vurderinger ${{ github.ref_name }}
+          generate_release_notes: true
+          files: ${{ runner.temp }}/apk/*.apk

@@ -8,6 +8,9 @@ import { Preferences } from '@capacitor/preferences'
 export const isNative = Capacitor.isNativePlatform()
 export const platform = Capacitor.getPlatform() as 'web' | 'android' | 'ios'
 
+// The newest Android app, attached to every GitHub release by CI under this fixed name.
+export const ANDROID_APK_URL = 'https://github.com/TheOriginalCER06/beer-rates/releases/latest/download/drikke-vurderinger.apk'
+
 export const DEFAULT_SERVER = (import.meta.env.VITE_SERVER_URL ?? 'https://xn--l-4ga.cer06.no').replace(/\/+$/, '')
 const SERVER_KEY = 'server-url'
 const TOKEN_KEY = 'api-token'

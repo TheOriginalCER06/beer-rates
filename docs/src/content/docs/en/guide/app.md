@@ -7,7 +7,7 @@ sidebar:
 
 ## Android app
 
-1. Get the APK file from the admin (or the link they give you) and open it on the phone.
+1. On the phone, open [øl.cer06.no](https://xn--l-4ga.cer06.no) → **Profile → Download the app (APK)**, or [this link](https://github.com/TheOriginalCER06/beer-rates/releases/latest/download/drikke-vurderinger.apk), and open the downloaded file.
 2. Allow installing from that source when Android asks (a one-time setting).
 3. Open **Drikke Vurderinger** and log in. You stay logged in until you log out.
 

@@ -17,7 +17,7 @@ Drikke Vurderinger ligger på **[øl.cer06.no](https://xn--l-4ga.cer06.no)**. N�
 
 | Telefon | Slik |
 |---|---|
-| **Android** | Installer Drikke Vurderinger-appen (APK) fra admin, se [Appen og bruk uten nett](/docs/guide/app/). |
+| **Android** | Installer appen: **Profil → Last ned appen (APK)**, se [Appen og bruk uten nett](/docs/guide/app/). |
 | **iPhone** | Åpne siden i Safari → **Del → Legg til på Hjem-skjerm**. Den åpnes i fullskjerm som en app. |
 | **PC** | Bruk nettleseren. |
 

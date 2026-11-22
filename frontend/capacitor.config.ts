@@ -15,7 +15,9 @@ const config: CapacitorConfig = {
     SplashScreen: { launchShowDuration: 600, backgroundColor: '#2b1a0b', showSpinner: false },
     Keyboard: { resize: 'body', resizeOnFullScreen: true },
     PushNotifications: { presentationOptions: ['badge', 'sound', 'alert'] },
-    SystemBars: { insetsHandling: 'css', style: 'DARK' },
+    // Edge to edge: Capacitor passes the status/navigation bar sizes to the page as --safe-area-inset-*
+    // (used in src/app.css). index.html sets viewport-fit=cover; the hint avoids a jump at start-up.
+    SystemBars: { insetsHandling: 'css', style: 'DARK', initialViewportFitValueHint: 'cover' },
   },
 }
 
