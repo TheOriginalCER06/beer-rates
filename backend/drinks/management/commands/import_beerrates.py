@@ -1,5 +1,5 @@
 """
-Import everything from the old Node.js Beer Rates (SQLite + photos folder).
+Import everything from the old Node.js app (SQLite + photos folder).
 
     python manage.py import_beerrates /import            # the old data folder (beers.db, photos/)
     python manage.py import_beerrates /import/old.tar.gz # or a backup of it
@@ -128,7 +128,7 @@ class Command(BaseCommand):
     def _import(self, connection, photo_dir: Path, no_photos: bool, dry_run: bool = False) -> None:
         tables = self._tables(connection)
         if "beers" not in tables:
-            raise CommandError("This doesn't look like the old Beer Rates database (no `beers` table).")
+            raise CommandError("This doesn't look like the old app's database (no `beers` table).")
         users = self._import_users(connection) if "users" in tables else {}
         if "settings" in tables:
             self._import_settings(connection)

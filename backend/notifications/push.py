@@ -173,7 +173,7 @@ def send_test(user) -> int:
     for subscription in PushSubscription.objects.filter(user=user):
         message = PushMessage.objects.create(
             subscription=subscription,
-            title="Beer Rates",
+            title="Drikke Vurderinger",
             body=body,
             url="/profile",
             tag="test",

@@ -9,8 +9,8 @@ export default defineConfig({
 	base: '/docs',
 	integrations: [
 		starlight({
-			title: { nb: 'Beer Rates', en: 'Beer Rates' },
-			description: 'Dokumentasjon for Beer Rates / documentation for Beer Rates.',
+			title: { nb: 'Drikke Vurderinger', en: 'Drikke Vurderinger' },
+			description: 'Dokumentasjon for Drikke Vurderinger / documentation for Drikke Vurderinger.',
 			logo: { src: './src/assets/logo.svg', replacesTitle: false },
 			favicon: '/favicon.svg',
 			// Norwegian is served at /, English at /en/.

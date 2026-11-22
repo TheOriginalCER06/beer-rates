@@ -5,7 +5,7 @@ import type { CapacitorConfig } from '@capacitor/cli'
 // android/ in Android Studio or run the GitHub Actions workflow (see docs: Admin → Phone apps).
 const config: CapacitorConfig = {
   appId: 'no.cer06.beerrates',
-  appName: 'Beer Rates',
+  appName: 'Drikke Vurderinger',
   webDir: 'dist',
   android: {
     // Photos are uploaded straight from the app; the server is always HTTPS.

@@ -5,6 +5,10 @@
       "name": "backend",
       "runtimeExecutable": "backend/.venv/Scripts/python.exe",
       "runtimeArgs": ["backend/manage.py", "runserver", "127.0.0.1:8000"],
+      "env": {
+        "DJANGO_DEBUG": "true",
+        "DJANGO_CSRF_TRUSTED_ORIGINS": "http://localhost:5173,http://127.0.0.1:5173"
+      },
       "port": 8000
     },
     {

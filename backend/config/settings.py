@@ -1,5 +1,5 @@
 """
-Django settings for Beer Rates.
+Django settings for Drikke Vurderinger.
 
 All deployment-specific values come from environment variables (see ../.env.example).
 For local development a `.env` file in the repository root is loaded automatically.
@@ -179,7 +179,7 @@ PASSWORD_RESET_TIMEOUT = 2 * 60 * 60  # reset links are valid for 2 hours
 # --- Email -----------------------------------------------------------------------
 # Sent through the worker (notifications.OutgoingEmail). Without EMAIL_HOST, emails
 # are printed to the worker log instead (handy in development).
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Beer Rates <noreply@localhost>")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Drikke Vurderinger <noreply@localhost>")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 _email_use_ssl = env_bool("EMAIL_USE_SSL", False)
 if os.environ.get("EMAIL_HOST"):
@@ -211,7 +211,7 @@ FCM_SERVICE_ACCOUNT_FILE = os.environ.get("FCM_SERVICE_ACCOUNT_FILE", "")
 # Look-ups are cached this long (reference data hardly changes).
 LOOKUP_CACHE_DAYS = int(os.environ.get("LOOKUP_CACHE_DAYS", "30"))
 LOOKUP_TIMEOUT_SECONDS = float(os.environ.get("LOOKUP_TIMEOUT_SECONDS", "8"))
-LOOKUP_USER_AGENT = os.environ.get("LOOKUP_USER_AGENT", f"BeerRates/{APP_VERSION} (self-hosted)")
+LOOKUP_USER_AGENT = os.environ.get("LOOKUP_USER_AGENT", f"DrikkeVurderinger/{APP_VERSION} (self-hosted)")
 if TESTING:
     # Tests must mock the providers; anything that slips through fails fast.
     LOOKUP_TIMEOUT_SECONDS = 0.001

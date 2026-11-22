@@ -75,7 +75,7 @@ export async function registerNative(): Promise<string> {
   let permission = await PushNotifications.checkPermissions()
   if (permission.receive !== 'granted') permission = await PushNotifications.requestPermissions()
   if (permission.receive !== 'granted') throw new Error('denied')
-  await PushNotifications.createChannel({ id: 'default', name: 'Beer Rates', importance: 4 }).catch(() => undefined)
+  await PushNotifications.createChannel({ id: 'default', name: 'Drikke Vurderinger', importance: 4 }).catch(() => undefined)
   return new Promise((resolve, reject) => {
     void PushNotifications.addListener('registration', (token) => resolve(token.value))
     void PushNotifications.addListener('registrationError', (error) => reject(new Error(error.error)))

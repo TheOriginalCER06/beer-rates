@@ -9,7 +9,7 @@ sidebar:
 
 1. Få APK-filen fra admin (eller lenken de gir deg) og åpne den på telefonen.
 2. Tillat installasjon fra den kilden når Android spør (gjøres én gang).
-3. Åpne **Beer Rates** og logg inn. Du forblir innlogget til du logger ut.
+3. Åpne **Drikke Vurderinger** og logg inn. Du forblir innlogget til du logger ut.
 
 Oppdateringer kommer som en ny APK som installeres over den gamle; innlogging og data beholdes.
 

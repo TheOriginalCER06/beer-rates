@@ -2,7 +2,7 @@
 
 Hi {{ user.username }},
 
-your Beer Rates account has been approved. You can now log and rate drinks:
+your Drikke Vurderinger account has been approved. You can now log and rate drinks:
 
 {{ site_url }}
 

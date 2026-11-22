@@ -30,7 +30,7 @@ import { canAdd, useMe } from '../me'
 import { Logo } from './Logo'
 import { OutboxBanner } from './OutboxBanner'
 import { PageLoader } from './PageLoader'
-import { VersionFooter } from './Common'
+import { AppName, VersionFooter } from './Common'
 
 export function ColorSchemeToggle() {
   const { t } = useTranslation()
@@ -80,8 +80,8 @@ export function AppLayout() {
             <Link to="/" style={{ textDecoration: 'none' }}>
               <Group gap={8} wrap="nowrap">
                 <Logo size={34} />
-                <Title order={4} c="beer.4">
-                  {t('app.title')}
+                <Title order={4} c="beer.4" lh={1.05}>
+                  <AppName />
                 </Title>
               </Group>
             </Link>

@@ -1,4 +1,4 @@
-# Beer Rates
+# Drikke Vurderinger
 
 Self-hosted app for logging and rating beer, wine, cocktails and more – with photos, barcodes, statistics and a calendar. Website, installable web app and Android/iOS app from one codebase. Runs on a Proxmox CT with Docker Compose, the same way as BLAP.
 
@@ -69,7 +69,8 @@ Requires Python 3.12+ and Node 22+.
 cd backend
 python -m venv .venv && .venv/Scripts/activate        # Linux/macOS: source .venv/bin/activate
 pip install -r requirements-dev.txt
-# ../.env with at least DJANGO_DEBUG=true
+# ../.env with at least DJANGO_DEBUG=true and DJANGO_CSRF_TRUSTED_ORIGINS=http://localhost:5173
+# (.claude/launch.json sets both for the dev servers)
 python manage.py migrate && python manage.py createsuperuser
 python manage.py runserver
 python manage.py run_worker        # separate terminal; sends emails/pushes

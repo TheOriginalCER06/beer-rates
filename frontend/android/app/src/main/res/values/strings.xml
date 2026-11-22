@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Beer Rates</string>
-    <string name="title_activity_main">Beer Rates</string>
+    <string name="app_name">Drikke Vurderinger</string>
+    <string name="title_activity_main">Drikke Vurderinger</string>
     <string name="package_name">no.cer06.beerrates</string>
     <string name="custom_url_scheme">no.cer06.beerrates</string>
 </resources>

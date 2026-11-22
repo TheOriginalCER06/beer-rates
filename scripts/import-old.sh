@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Import users, drinks, photos and settings from the old Node.js Beer Rates.
+# Import users, drinks, photos and settings from the old Node.js app.
 #
 #   scripts/import-old.sh                       # from the old Docker volume (beer-rates_drink_data)
 #   scripts/import-old.sh /root/old-data.tar.gz # or from a backup of the old /app/data folder

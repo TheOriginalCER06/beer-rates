@@ -1,6 +1,6 @@
 {
-  "name": "Beer Rates – drikkevurderinger",
-  "short_name": "Beer Rates",
+  "name": "Drikke Vurderinger",
+  "short_name": "Drikke Vurderinger",
   "description": "Logg og vurder øl, vin, cocktailer og mer – med bilder, statistikk og kalender.",
   "lang": "nb",
   "start_url": "/",

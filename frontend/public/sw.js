@@ -83,7 +83,7 @@ self.addEventListener('push', (event) => {
     data = { body: event.data ? event.data.text() : '' }
   }
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Beer Rates', {
+    self.registration.showNotification(data.title || 'Drikke Vurderinger', {
       body: data.body || '',
       icon: '/icon-192.png',
       badge: '/icon-192.png',

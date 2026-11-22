@@ -9,7 +9,7 @@ sidebar:
 
 1. Get the APK file from the admin (or the link they give you) and open it on the phone.
 2. Allow installing from that source when Android asks (a one-time setting).
-3. Open **Beer Rates** and log in. You stay logged in until you log out.
+3. Open **Drikke Vurderinger** and log in. You stay logged in until you log out.
 
 Updates come as a new APK installed over the old one; your login and data stay.
 

@@ -9,7 +9,7 @@ class UserAdmin(BaseUserAdmin):
     list_display = ("username", "email", "role", "is_approved", "is_active", "date_joined")
     list_filter = ("role", "is_approved", "is_active", "is_superuser")
     fieldsets = BaseUserAdmin.fieldsets + (
-        ("Beer Rates", {"fields": ("role", "is_approved", "approved_at", "language", "legacy_id")}),
+        ("Drikke Vurderinger", {"fields": ("role", "is_approved", "approved_at", "language", "legacy_id")}),
         (
             "Notifications",
             {"fields": ("push_new_drinks", "push_cheers", "push_admin_new_signup", "email_admin_new_signup")},

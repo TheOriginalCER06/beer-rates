@@ -145,7 +145,7 @@ def search_wines(query: str) -> list[Result]:
         data = _cached_json(
             f"vivino:{query.lower()}",
             f"{VIVINO_BASE}?q={quote(query)}&per_page=8",
-            headers={"User-Agent": "Mozilla/5.0 (compatible; BeerRates/2.0)"},
+            headers={"User-Agent": "Mozilla/5.0 (compatible; DrikkeVurderinger/2.0)"},
         )
     except (requests.RequestException, ValueError) as exc:
         logger.info("Vivino look-up failed: %s", exc)

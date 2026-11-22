@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.1] - 2026-11-22
+
+### Changed
+- The app is called **Drikke Vurderinger**: website, home screen, the Android and iOS apps, emails, notifications and docs. (The repository, Docker project and app ID keep their technical names.)
+- The docs are at øl.cer06.no/docs, served by the app, instead of needing a domain of their own.
+- `scripts/update.sh` builds and downloads images while the running version stays up, so an update is down for about a minute at most.
+- `scripts/deploy.sh` logs in with its own restricted key, `~/.ssh/beerrates_deploy`.
+
+### Fixed
+- The Android build in CI (the SDK setup step, `gradlew` not executable, the version code).
+
 ## [2.0.0] - 2026-11-21
 
 Rebuilt from scratch in the style of BLAP: Django + GraphQL + PostgreSQL, React with Mantine, Docker Compose with nginx, deployed with `scripts/deploy.sh` / `scripts/update.sh`.

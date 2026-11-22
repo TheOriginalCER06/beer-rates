@@ -1,6 +1,6 @@
 {% autoescape off %}Subject: Ny bruker: {{ new_user.username }}
 
-{{ new_user.username }}{% if new_user.email %} ({{ new_user.email }}){% endif %} har laget en konto i Beer Rates.
+{{ new_user.username }}{% if new_user.email %} ({{ new_user.email }}){% endif %} har laget en konto i Drikke Vurderinger.
 {% if new_user.is_approved %}
 Kontoen er allerede aktiv (godkjenning er slått av).{% else %}
 Kontoen venter på godkjenning:{% endif %}

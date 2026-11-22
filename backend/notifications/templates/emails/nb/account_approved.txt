@@ -2,7 +2,7 @@
 
 Hei {{ user.username }},
 
-kontoen din i Beer Rates er godkjent. Nå kan du logge og vurdere drikke:
+kontoen din i Drikke Vurderinger er godkjent. Nå kan du logge og vurdere drikke:
 
 {{ site_url }}
 

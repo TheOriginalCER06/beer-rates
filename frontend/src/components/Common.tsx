@@ -39,17 +39,30 @@ export function VersionFooter() {
   )
 }
 
+/** The app's name; on narrow screens each word gets its own line ("Drikke" over "Vurderinger"). */
+export function AppName() {
+  const { t } = useTranslation()
+  return (
+    <span className="app-name">
+      {t('app.title')
+        .split(' ')
+        .map((word, i) => (
+          <span key={i}>{i > 0 ? ` ${word}` : word}</span>
+        ))}
+    </span>
+  )
+}
+
 /** Centered card for login, signup and the other account pages. */
 export function AuthCard({ title, children }: { title: string; children: ReactNode }) {
-  const { t } = useTranslation()
   return (
     <Center mih="100vh" p="md" style={{ paddingTop: 'calc(var(--safe-top) + 16px)', paddingBottom: 'calc(var(--safe-bottom) + 16px)' }}>
       <Stack w="100%" maw={420}>
         <Group justify="space-between" wrap="nowrap">
           <Group gap="xs" wrap="nowrap">
             <Logo size={44} background />
-            <Text fw={800} size="xl" c="beer.7">
-              {t('app.title')}
+            <Text fw={800} size="xl" c="beer.7" lh={1.1}>
+              <AppName />
             </Text>
           </Group>
           <Group gap="xs" wrap="nowrap">

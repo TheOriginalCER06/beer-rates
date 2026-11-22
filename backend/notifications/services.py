@@ -36,7 +36,7 @@ SEND_LEASE = timedelta(minutes=2)
 PUSH_TEXT = {
     "nb": {
         "approved_title": "Kontoen din er godkjent",
-        "approved_body": "Nå kan du logge drikke i Beer Rates.",
+        "approved_body": "Nå kan du logge drikke i Drikke Vurderinger.",
         "signup_title": "Ny bruker: {username}",
         "signup_body": "Venter på godkjenning.",
         "signup_body_open": "Har laget en konto.",
@@ -47,7 +47,7 @@ PUSH_TEXT = {
     },
     "en": {
         "approved_title": "Your account is approved",
-        "approved_body": "You can now log drinks in Beer Rates.",
+        "approved_body": "You can now log drinks in Drikke Vurderinger.",
         "signup_title": "New user: {username}",
         "signup_body": "Waiting for approval.",
         "signup_body_open": "Created an account.",

@@ -1,7 +1,7 @@
 {
   "name": "beer-rates-docs",
   "type": "module",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build && node --env-file-if-exists=.env scripts/protect-admin.mjs",

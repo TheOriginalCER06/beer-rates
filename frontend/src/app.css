@@ -205,3 +205,14 @@ body {
   background: var(--mantine-color-beer-5);
   min-width: 2px;
 }
+
+/* The app's name (AppName): one line on wide screens, a word per line on phones. */
+.app-name > span {
+  white-space: nowrap;
+}
+
+@media (max-width: 30em) {
+  .app-name > span {
+    display: block;
+  }
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Update Beer Rates on the Proxmox CT (run from anywhere in the repo).
+# Update Drikke Vurderinger on the Proxmox CT (run from anywhere in the repo).
 #
 #   scripts/update.sh [--no-backup]
 #
