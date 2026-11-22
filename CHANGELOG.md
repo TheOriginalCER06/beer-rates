@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.0.6] - 2026-11-22
+
+### Changed
+- Clearer Norwegian wording: **Vil drikke igjen** (was «Den tar jeg igjen» / «Tar igjen» / «Igjen»), **Alle** and **Lagt til av** in the list filter (were «Alle sine» / «Hvem sine»), **Snittkarakter** and **Høyest vurdert** in the statistics, **Alle drikker** for export, and notifications are turned off «for denne enheten», like they're turned on.
+
 ## [2.0.5] - 2026-11-22
 
 ### Added

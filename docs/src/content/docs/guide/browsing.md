@@ -8,7 +8,7 @@ sidebar:
 ## Lista
 
 - Søk i navn, bryggeri, stil, notater, land eller sted.
-- Brikkene filtrerer på kategori; filterknappen sorterer (dato, karakter, navn, alkohol, lagt til) og filtrerer på person, karakter og «Den tar jeg igjen».
+- Brikkene filtrerer på kategori; filterknappen sorterer (dato, karakter, navn, alkohol, lagt til) og filtrerer på person, karakter og «Vil drikke igjen».
 - Flere drikker lastes inn når du blar.
 
 ## En drikk
