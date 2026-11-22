@@ -38,7 +38,7 @@ import {
 } from '@tabler/icons-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { BarcodeModal } from '../components/BarcodeModal'
 import { CropModal } from '../components/CropModal'
 import { CategoryBadge } from '../components/DrinkCard'
@@ -72,6 +72,7 @@ import { useOnline } from '../lib/offline'
 import { addToOutbox, isNetworkError, newClientId } from '../lib/outbox'
 import { checkQuality, prepare, type Quality } from '../lib/photo'
 import { isNative, mediaUrl } from '../lib/platform'
+import { asQuickAction } from '../lib/quickActions'
 import { COUNTRIES, CATEGORY_ICON, STYLES } from '../lib/styles'
 import { uploadPhoto } from '../lib/upload'
 import { useSiteConfig } from '../me'
@@ -349,6 +350,26 @@ export function DrinkFormPage() {
       setScanning(true)
     }
   }
+
+  // Opened from an app shortcut or the home-screen widget (lib/quickActions.ts): /add?photo=camera
+  // starts the camera at once. The parameter is removed, so going back or re-rendering doesn't
+  // start it again; the location key stops a second start for the same tap.
+  const [params, setParams] = useSearchParams()
+  const location = useLocation()
+  const quickAction = asQuickAction(params.get('photo'))
+  const quickActionHandled = useRef<string | null>(null)
+  useEffect(() => {
+    if (!quickAction || quickActionHandled.current === location.key) return
+    quickActionHandled.current = location.key
+    setParams({}, { replace: true })
+    if (quickAction === 'barcode') {
+      if (photoAi) void scan()
+    } else if (isNative) {
+      void takeNative(quickAction)
+    }
+    // Only for a new link; scan and takeNative are fresh functions on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quickAction, location.key])
 
   const doSearch = (query = search) => {
     if (query.trim().length >= 2) void runLookup({ variables: { category: form.category, query: query.trim() } })

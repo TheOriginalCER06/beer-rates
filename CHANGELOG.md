@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.0.5] - 2026-11-22
+
+### Added
+- Android: long-press the app icon for **Photo**, **Barcode** and **Add**, and a **Quick add** widget for the home screen with **Photo** and **Add**. Both open the new-drink form with the camera or scanner already running.
+
+### Fixed
+- Photos load in the Android app. Cloudflare's hotlink protection refused them, because the app's pages come from `https://localhost`; the app now sends no referer.
+- The bottom tab bar is solid, so content scrolled underneath no longer shows through its labels.
+- Rate limiting sees each visitor's own IP address instead of Cloudflare's: `TRUSTED_PROXY_COUNT` is now 3 (Cloudflare + Nginx Proxy Manager + nginx).
+
 ## [2.0.4] - 2026-11-22
 
 ### Added

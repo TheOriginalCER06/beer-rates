@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press on the app icon. The links are handled in src/lib/quickActions.ts. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_camera"
+        android:shortcutId="photo"
+        android:shortcutLongLabel="@string/shortcut_photo_long"
+        android:shortcutShortLabel="@string/shortcut_photo_short">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="drikkevurderinger://add?photo=camera"
+            android:targetClass="no.cer06.beerrates.MainActivity"
+            android:targetPackage="no.cer06.beerrates" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_barcode"
+        android:shortcutId="barcode"
+        android:shortcutLongLabel="@string/shortcut_barcode_long"
+        android:shortcutShortLabel="@string/shortcut_barcode_short">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="drikkevurderinger://add?photo=barcode"
+            android:targetClass="no.cer06.beerrates.MainActivity"
+            android:targetPackage="no.cer06.beerrates" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_plus"
+        android:shortcutId="add"
+        android:shortcutLongLabel="@string/shortcut_add_long"
+        android:shortcutShortLabel="@string/shortcut_add_short">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="drikkevurderinger://add"
+            android:targetClass="no.cer06.beerrates.MainActivity"
+            android:targetPackage="no.cer06.beerrates" />
+    </shortcut>
+</shortcuts>

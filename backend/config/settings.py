@@ -170,9 +170,9 @@ LOGGING = {
 SITE_URL = os.environ.get("SITE_URL", "http://localhost:5173").rstrip("/")
 
 # Number of reverse proxies in front of Django that append to X-Forwarded-For
-# (Nginx Proxy Manager for øl.cer06.no + the nginx container = 2). Used to find the
-# real client IP for rate limiting.
-TRUSTED_PROXY_COUNT = int(os.environ.get("TRUSTED_PROXY_COUNT", "2"))
+# (Cloudflare + Nginx Proxy Manager for øl.cer06.no + the nginx container = 3). Used to
+# find the real client IP for rate limiting.
+TRUSTED_PROXY_COUNT = int(os.environ.get("TRUSTED_PROXY_COUNT", "3"))
 
 PASSWORD_RESET_TIMEOUT = 2 * 60 * 60  # reset links are valid for 2 hours
 

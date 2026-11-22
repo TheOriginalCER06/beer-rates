@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App shortcuts and the quick-add widget. -->
+<resources>
+    <string name="shortcut_photo_short">Photo</string>
+    <string name="shortcut_photo_long">Photograph a drink</string>
+    <string name="shortcut_barcode_short">Barcode</string>
+    <string name="shortcut_barcode_long">Scan a barcode</string>
+    <string name="shortcut_add_short">Add</string>
+    <string name="shortcut_add_long">Add a drink</string>
+    <string name="widget_name">Quick add</string>
+    <string name="widget_description">Photograph a drink straight from the home screen</string>
+    <string name="widget_photo">Photo</string>
+    <string name="widget_add">Add</string>
+</resources>

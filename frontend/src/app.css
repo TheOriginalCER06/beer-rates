@@ -45,8 +45,10 @@ body {
   padding-right: var(--safe-right);
   display: flex;
   align-items: stretch;
-  background: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
-  border-top: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  /* Solid: what's scrolled underneath must never show through the labels. */
+  background: var(--mantine-color-body);
+  border-top: 1px solid var(--mantine-color-default-border);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.18);
 }
 
 .keyboard-open .tabbar {
@@ -135,7 +137,7 @@ body {
   object-fit: cover;
   border-radius: var(--mantine-radius-md);
   flex: 0 0 auto;
-  background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5));
+  background: var(--mantine-color-default-hover);
 }
 
 .cropper {
@@ -172,7 +174,7 @@ body {
   gap: 2px;
   cursor: pointer;
   border: 1px solid transparent;
-  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+  background: var(--mantine-color-default-hover);
   min-width: 0;
 }
 
@@ -181,7 +183,7 @@ body {
 }
 
 .calendar-day.selected {
-  background: light-dark(var(--mantine-color-beer-1), var(--mantine-color-dark-4));
+  background: var(--mantine-primary-color-light);
 }
 
 .calendar-day.outside {

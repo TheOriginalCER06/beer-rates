@@ -10,6 +10,7 @@ import i18n from './i18n'
 import { onRestoredPhoto, setPendingPhoto } from './lib/camera'
 import { describeError } from './lib/errors'
 import { onNativeNotificationTap } from './lib/push'
+import { onQuickAction } from './lib/quickActions'
 import { canAdd, MeContext, SiteConfigContext } from './me'
 
 // Each page is its own file, fetched the first time it's opened. The apps have them all built in.
@@ -63,6 +64,8 @@ export default function App() {
     [navigate],
   )
   useEffect(() => onNativeNotificationTap((path) => void navigate(path)), [navigate])
+  // Android: the long-press shortcuts on the app icon and the quick-add widget.
+  useEffect(() => onQuickAction((path) => void navigate(path)), [navigate])
 
   // Fetch the main pages' code in the background, so they open at once (and offline).
   useEffect(() => {

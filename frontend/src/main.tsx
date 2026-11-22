@@ -47,6 +47,15 @@ function render() {
   )
 }
 
+// Cloudflare's hotlink protection refuses photos requested from pages on another site, and the
+// app's pages come from https://localhost. Without a referer, Cloudflare lets them through.
+if (isNative) {
+  const referrer = document.createElement('meta')
+  referrer.name = 'referrer'
+  referrer.content = 'no-referrer'
+  document.head.appendChild(referrer)
+}
+
 registerServiceWorker()
 void (async () => {
   await loadNativeSettings().catch(() => undefined)

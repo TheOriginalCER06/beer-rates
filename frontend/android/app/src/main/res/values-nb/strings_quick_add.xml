@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App shortcuts and the quick-add widget. -->
+<resources>
+    <string name="shortcut_photo_short">Ta bilde</string>
+    <string name="shortcut_photo_long">Ta bilde av en drikke</string>
+    <string name="shortcut_barcode_short">Strekkode</string>
+    <string name="shortcut_barcode_long">Skann strekkode</string>
+    <string name="shortcut_add_short">Legg til</string>
+    <string name="shortcut_add_long">Legg til drikke</string>
+    <string name="widget_name">Hurtigregistrering</string>
+    <string name="widget_description">Ta bilde av en drikke rett fra hjemskjermen</string>
+    <string name="widget_photo">Ta bilde</string>
+    <string name="widget_add">Legg til</string>
+</resources>

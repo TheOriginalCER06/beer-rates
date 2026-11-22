@@ -13,6 +13,13 @@ sidebar:
 
 Updates come as a new APK installed over the old one; your login and data stay.
 
+### Shortcuts and widget
+
+- **Long-press the app icon** for the shortcuts **Photo**, **Barcode** and **Add**. Drag one onto the home screen to keep it as its own icon.
+- **Widget:** long-press an empty spot on the home screen → **Widgets** → **Drikke Vurderinger** → **Quick add**. It has the buttons **Photo** and **Add**.
+
+Both open the new-drink form with the camera (or the barcode scanner) already running.
+
 ## iPhone
 
 Open [øl.cer06.no](https://xn--l-4ga.cer06.no) in Safari → **Share → Add to Home Screen**. It then opens full screen, works offline and can get notifications (iOS 16.4 or newer).

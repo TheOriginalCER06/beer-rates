@@ -13,6 +13,13 @@ sidebar:
 
 Oppdateringer kommer som en ny APK som installeres over den gamle; innlogging og data beholdes.
 
+### Snarveier og widget
+
+- **Hold inne app-ikonet** for snarveiene **Ta bilde**, **Strekkode** og **Legg til**. Dra en av dem ut på hjemskjermen for å få den som eget ikon.
+- **Widget:** hold inne et tomt sted på hjemskjermen → **Widgeter** → **Drikke Vurderinger** → **Hurtigregistrering**. Den har knappene **Ta bilde** og **Legg til**.
+
+Begge åpner skjemaet for ny drikk med kameraet (eller strekkodeleseren) allerede i gang.
+
 ## iPhone
 
 Åpne [øl.cer06.no](https://xn--l-4ga.cer06.no) i Safari → **Del → Legg til på Hjem-skjerm**. Da åpnes den i fullskjerm, virker uten nett og kan få varsler (iOS 16.4 eller nyere).
