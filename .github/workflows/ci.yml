@@ -128,7 +128,7 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
@@ -169,12 +169,12 @@ jobs:
             ./gradlew --no-daemon assembleDebug
             cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/apk/drikke-vurderinger-$version-debug.apk"
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: drikke-vurderinger-android
           path: ${{ runner.temp }}/apk/drikke-vurderinger-*.apk
           retention-days: 30
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           name: Drikke Vurderinger ${{ github.ref_name }}
