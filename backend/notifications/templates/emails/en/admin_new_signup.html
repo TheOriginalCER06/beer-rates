@@ -1,0 +1,8 @@
+{% extends "emails/layout.html" %}
+{% block title %}New user: {{ new_user.username }}{% endblock %}
+{% block content %}
+<p><strong>{{ new_user.username }}</strong>{% if new_user.email %} ({{ new_user.email }}){% endif %} created a Beer Rates account.</p>
+<p>{% if new_user.is_approved %}The account is already active (approval is turned off).{% else %}The account is waiting for approval.{% endif %}</p>
+<p style="margin:24px 0;"><a href="{{ site_url }}/manage?tab=users" style="background:#f59e0b;color:#2b1d0e;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:8px;display:inline-block;">Open users</a></p>
+<p style="color:#7a6650;font-size:13px;">You can turn these emails off under Profile.</p>
+{% endblock %}

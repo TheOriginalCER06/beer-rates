@@ -1,0 +1,23 @@
+{
+  "name": "beer-rates-docs",
+  "type": "module",
+  "version": "2.0.0",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && node --env-file-if-exists=.env scripts/protect-admin.mjs",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.42.6",
+    "astro": "^7.4.0",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "staticrypt": "^3.5.4"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=22.9"
+  }
+}

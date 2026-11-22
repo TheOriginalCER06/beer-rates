@@ -1,0 +1,8 @@
+{% extends "emails/layout.html" %}
+{% block title %}Kontoen din er godkjent{% endblock %}
+{% block content %}
+<p>Hei {{ user.username }},</p>
+<p>kontoen din i Beer Rates er godkjent. Nå kan du logge og vurdere drikke.</p>
+<p style="margin:24px 0;"><a href="{{ site_url }}" style="background:#f59e0b;color:#2b1d0e;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:8px;display:inline-block;">Åpne Beer Rates</a></p>
+<p>Skål! 🍻</p>
+{% endblock %}

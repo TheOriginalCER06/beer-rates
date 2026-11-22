@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="{{ language }}">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>{% block title %}{% endblock %}</title></head>
+<body style="margin:0;padding:0;background:#f4efe6;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#2b1d0e;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4efe6;padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;">
+        <tr><td style="background:#3b2410;border-bottom:4px solid #f59e0b;padding:18px 24px;">
+          <span style="font-size:20px;font-weight:800;color:#f8b84e;">🍺 Beer Rates</span>
+        </td></tr>
+        <tr><td style="padding:24px;font-size:15px;line-height:1.55;">{% block content %}{% endblock %}</td></tr>
+        <tr><td style="padding:14px 24px;background:#faf6ef;font-size:12px;color:#7a6650;">{% block footer %}<a href="{{ site_url }}" style="color:#b45309;">{{ site_url }}</a>{% endblock %}</td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

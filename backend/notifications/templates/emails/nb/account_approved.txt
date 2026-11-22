@@ -1,0 +1,10 @@
+{% autoescape off %}Subject: Kontoen din er godkjent
+
+Hei {{ user.username }},
+
+kontoen din i Beer Rates er godkjent. Nå kan du logge og vurdere drikke:
+
+{{ site_url }}
+
+Skål!
+{% endautoescape %}

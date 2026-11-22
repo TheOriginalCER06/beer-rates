@@ -1,17 +1,120 @@
+# Same project name as the old Node app (which ran from /opt/beer-rates), so its data volume
+# (beer-rates_drink_data) stays reachable for scripts/import-old.sh.
+name: beer-rates
+
+x-backend: &backend
+  build: ./backend
+  image: beer-rates-backend
+  restart: unless-stopped
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  env_file: .env
+  environment:
+    DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+  volumes:
+    - media:/app/media
+    # Optional files such as the Firebase key for push to the Android app (see .env.example).
+    - ./secrets:/run/secrets/beer-rates:ro
+  depends_on:
+    db:
+      condition: service_healthy
+
 services:
-  app:
-    build: .
-    ports:
-      - "3000:3000"
-    volumes:
-      - drink_data:/app/data
+  db:
+    image: postgres:18-alpine
     restart: unless-stopped
-    # No external API keys are needed — every drink database used is open or uses
-    # a fixed public endpoint. Providers are toggled in-app (Settings), not here.
+    security_opt: [no-new-privileges:true]
     environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - COOKIE_SECURE=true # Comment if not using HTTPS
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 10
+
+  # Django + GraphQL API (gunicorn). Runs migrations on start.
+  backend:
+    <<: *backend
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      RUN_MIGRATIONS: "1"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/')"]
+      interval: 10s
+      start_period: 20s
+      retries: 5
+
+  # Sends emails and push notifications, and tidies up once an hour.
+  worker:
+    <<: *backend
+    command: ["python", "manage.py", "run_worker"]
+    stop_grace_period: 15s
+    healthcheck:
+      test: ["CMD", "python", "manage.py", "worker_health"]
+      interval: 30s
+      start_period: 30s
+      retries: 2
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # nginx: serves the React app and the photos, proxies /graphql, /api, /admin, /static to backend.
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    volumes:
+      - media:/srv/media:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # Documentation site (optional): enable with COMPOSE_PROFILES=docs in .env. The web service
+  # serves it at /docs/, so it needs no port or domain of its own. Needs DOCS_ADMIN_PASSWORD at
+  # build time (the admin pages are encrypted with it).
+  docs:
+    profiles: [docs]
+    build:
+      context: ./docs
+      secrets:
+        - docs_admin_password
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+
+  # Nightly backups of the database and photos (optional): add `backup` to COMPOSE_PROFILES.
+  # See scripts/backup-loop.sh.
+  backup:
+    profiles: [backup]
+    image: postgres:18-alpine
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    entrypoint: ["/bin/sh", "/backup-loop.sh"]
+    environment:
+      TZ: Europe/Oslo
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_TIME: ${BACKUP_TIME:-03:00}
+      BACKUP_KEEP: ${BACKUP_KEEP:-14}
+      BACKUP_MEDIA_KEEP: ${BACKUP_MEDIA_KEEP:-3}
+    volumes:
+      - ${BACKUP_DIR:-/opt/backup}:/backups
+      - media:/media:ro
+      - ./scripts/backup-loop.sh:/backup-loop.sh:ro
+      - ./.env:/config/.env:ro
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
-  drink_data:
+  pgdata:
+  media:
+
+secrets:
+  docs_admin_password:
+    environment: DOCS_ADMIN_PASSWORD

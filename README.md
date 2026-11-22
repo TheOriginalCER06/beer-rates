@@ -1,595 +1,87 @@
 # Beer Rates
 
-A personal drink-tracking web app. Log beers, wines, cocktails, and more with ratings, tasting notes, and photos. Runs as a single Docker container — designed for self-hosting on a Proxmox LXC or any Linux server.
+Self-hosted app for logging and rating beer, wine, cocktails and more – with photos, barcodes, statistics and a calendar. Website, installable web app and Android/iOS app from one codebase. Runs on a Proxmox CT with Docker Compose, the same way as BLAP.
 
-Note: This project is made with AI! The code is made using Claude Sonnet 4.6. Do not use for production without understanding the risks!
----
+- **App:** <https://øl.cer06.no> (`xn--l-4ga.cer06.no`), CT `192.168.20.234`, port 3000
+- **Docs:** `docs/` (Norwegian + English; admin pages are password-protected), optionally served by the app at øl.cer06.no/docs
+- **Changes:** [CHANGELOG.md](CHANGELOG.md). The version is in `backend/pyproject.toml` and shown in the app footer.
 
 ## Features
 
-| | |
+- **Photos that work on phones:** native camera and gallery in the app (file input with camera on the web), one-pass EXIF rotation, **crop it yourself** (drag, pinch, 4:5 / 1:1 / 3:4 / 9:16 / whole, rotate), blur/darkness warning, shrunk to ~300 kB before upload. The server re-saves every photo (strips GPS) and makes a thumbnail.
+- **Barcode scanning:** ML Kit scanner in the Android app, BarcodeDetector or a self-hosted zxing-wasm polyfill elsewhere (also from a photo, or typed). Looks the code up in Open Food Facts and shows earlier drinks with the same code.
+- **Label reading (OCR):** tesseract.js on the device with English + Norwegian data, served from the site (no CDN). Text becomes tap-to-use suggestions and a database search, rather than being trusted blindly.
+- **Online databases:** Open Food Facts, OpenBreweryDB, TheCocktailDB, Vivino; cached 30 days, each switchable by admins.
+- **Offline:** last-seen data stays visible; drinks and photos saved without a connection wait in an on-device queue (IndexedDB) and upload by themselves; a client id makes retries safe. The form keeps a draft if Android kills the app during a photo.
+- **Accounts:** self sign-up (on/off), admin approval (on/off), default role, roles admin/contributor/viewer, **public viewing (on by default)**, password reset by email (Domeneshop SMTP).
+- **Social:** see everyone's drinks, filter by person, 🍻 cheers, "who logs most" statistics.
+- **Push notifications:** Web Push (browsers, iPhone home-screen app) and Firebase for the Android app: cheers, others' new drinks, new sign-ups (admins).
+- Stats (per person and year), calendar, CSV/XLSX export (share sheet in the app), Norwegian and English UI, light/dark.
+
+## Architecture
+
+```
+                     ┌────────────── Docker Compose (Proxmox CT 192.168.20.234) ─────────────┐
+ browser/app ► :3000 ┤ web (nginx) ── React SPA (Vite + Apollo + Mantine), /media/ photos    │
+                     │     │ /graphql /api /admin /static                                    │
+                     │     ▼                                                                 │
+                     │ backend (Django + Strawberry GraphQL, gunicorn) ─┐                    │
+                     │ worker  (manage.py run_worker: email, push)  ────┼─► db (Postgres 18) │
+                     │ docs (nginx, optional)   backup (optional)       │                    │
+                     └──────────────────────────────────────────────────┴────────────────────┘
+ Android/iOS app (Capacitor, bundled frontend) ──HTTPS + bearer token──► øl.cer06.no
+```
+
+| Path | What |
 |---|---|
-| **Drink categories** | Beer, Wine, Cocktail, Alcohol Free, Other — each with a tailored style dropdown |
-| **Entry fields** | Name, brewery/producer, style, ABV, country/region, rating (1–10), tasting notes, location/occasion, date, photo, container/serving type, "would have again" |
-| **Photo upload** | Camera or file picker; images are EXIF-rotated, resized, and compressed client-side (Canvas API); smart 9:16 portrait crop centred on detected drink |
-| **AI features** | TensorFlow.js drink detection (COCO-SSD), Tesseract.js OCR for brand/ABV, blur & darkness warnings — all in-browser, no server needed |
-| **Online look-up** | Search OpenBreweryDB, TheCocktailDB, Vivino, Open Food Facts directly from the add/edit form; one-tap auto-fills name, brewery, style, ABV, country + imports photo |
-| **Calendar view** | Monthly grid with coloured dots per category; click any day to see that day's drinks |
-| **Stats page** | Average rating, by-category breakdown, rating distribution, top drinks, styles, countries |
-| **CSV export** | Download all drinks as a UTF-8 (BOM) CSV — opens correctly in Excel with æ ø å |
-| **Authentication** | Session-based login; role system (admin / contributor / viewer); admin can toggle public read-only access |
-| **User management** | Admin can create, edit, activate/deactivate, and delete users |
-| **Dark UI** | Material UI v5 with a custom dark theme (amber accent); responsive — works on phone and desktop |
-| **Security** | `helmet` CSP, rate-limited login, strict session cookies, path-traversal protection, SSRF-safe image import |
+| `backend/accounts/` | `User` (role, approval, language, push settings), `ApiToken` + bearer middleware for the apps, rate limits |
+| `backend/drinks/` | `Drink`, `Cheers`, `SiteSettings`, photos (`photos.py`), look-ups (`lookup.py`), stats, export, `import_beerrates` |
+| `backend/notifications/` | Email outbox, Web Push + FCM, the worker |
+| `backend/api/` | GraphQL schema, admin fields, error codes |
+| `frontend/src/` | React app; `lib/` has the platform layer (web vs app), photo/crop, barcode, OCR, offline queue, push |
+| `frontend/android/`, `frontend/ios/` | Capacitor projects |
+| `docs/` | Astro Starlight docs, admin pages encrypted with StatiCrypt |
+| `scripts/` | `deploy.sh`, `update.sh`, `import-old.sh`, `backup-loop.sh` |
 
----
+## Deploying
 
-## Tech stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | React 18 · Vite · Material UI v5 · Emotion |
-| Backend | Node.js 20 · Express 4 |
-| Database | SQLite via `better-sqlite3` (single file, no separate server) |
-| Auth | `express-session` with a custom SQLite session store · `bcryptjs` |
-| File uploads | `multer` (memory storage) · Canvas API compression |
-| AI / ML | TensorFlow.js COCO-SSD (mobilenet_v2) · Tesseract.js · piexifjs |
-| Security | `helmet` · `express-rate-limit` |
-| Container | Docker — multi-stage build (Node 20 Alpine) |
-
----
-
-## Quick start
+Full guide: docs → *Administration → Installing and moving from the old app*. In short, on the CT:
 
 ```bash
-git clone <your-repo-url> beer-rates
-cd beer-rates
-docker compose up -d --build
+cd /opt/beer-rates && git pull --ff-only
+cp .env.example .env && vi .env && chmod 600 .env   # secrets, email; domain is filled in
+scripts/update.sh                                   # stops the old Node app, builds, starts
+scripts/import-old.sh                               # moves users (with passwords), drinks, photos, settings
 ```
 
-The app is now running on **port 3000**.
+Afterwards, from your PC: `scripts/deploy.sh` (push + `update.sh` over SSH to `root@192.168.20.234`).
 
-> **No `.env` file needed.** All external APIs are free with no keys. Provider toggles are controlled in-app via the admin Settings page.
+## Phone apps
 
-### Get the admin password
+GitHub Actions builds the Android APK on every push (*Artifacts*) and attaches it to `v*` releases. Signing key, Firebase push and iOS: docs → *Administration → Phone apps*.
 
-On first start the admin account (`local_admin`) is created with a random password. Retrieve it:
+## Local development
+
+Requires Python 3.12+ and Node 22+.
 
 ```bash
-# From Docker logs (one-time output on first boot)
-docker compose logs | grep "Password :"
-
-# Or read the file saved in the data volume
-docker exec beerrates-app-1 cat /app/data/admin-password.txt
-```
-
-> Delete `/app/data/admin-password.txt` after you have saved the password and changed it.
-
----
-
-## Deploying to Proxmox LXC
-
-### Recommended setup
-
-```
-Proxmox LXC (Alpine Linux)
-  └── Docker
-        └── beerrates container  :3000
-  └── Nginx  (reverse proxy, SSL termination)  :443 → :3000
-```
-
-### 1. Create the LXC and install Docker (Alpine)
-
-```bash
-# Inside the LXC container
-apk add --no-cache docker docker-cli-compose git curl ca-certificates
-rc-update add docker default
-rc-service docker start
-```
-
-### 2. Clone and start the app
-
-```bash
-git clone <your-repo-url> /opt/beer-rates
-cd /opt/beer-rates
-docker compose up -d --build
-```
-
-### 3. Set up Nginx with HTTPS
-
-Install Nginx and obtain a certificate (e.g. with Certbot or a wildcard cert from your router/reverse proxy).
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name beer.yourdomain.com;
-
-    ssl_certificate     /etc/letsencrypt/live/beer.yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/beer.yourdomain.com/privkey.pem;
-
-    # Increase limit for photo uploads
-    client_max_body_size 25M;
-
-    location / {
-        proxy_pass         http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header   Host              $host;
-        proxy_set_header   X-Real-IP         $remote_addr;
-        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header   X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-### 4. Enable secure cookies
-
-Once HTTPS is in place, uncomment the `COOKIE_SECURE` line in `docker-compose.yml`:
-
-```yaml
-environment:
-  - NODE_ENV=production
-  - PORT=3000
-  - COOKIE_SECURE=true   # ← uncomment this
-```
-
-Then restart:
-
-```bash
-docker compose up -d
-```
-
-> **Why is this needed?** `COOKIE_SECURE=true` tells Express to set the `Secure` flag on session cookies so they are only sent over HTTPS. Express also needs the `trust proxy` setting (already enabled) to accept `X-Forwarded-Proto: https` from Nginx.
-
----
-
-## Proxmox setup script (fresh CT)
-
-For a first-time install inside a new Proxmox LXC container, use:
-
-`scripts/proxmox-setup.sh`
-
-All maintenance scripts are written for POSIX `sh` on Alpine (no Bash required).
-
-This script will:
-
-- install Alpine prerequisites (`curl`, `git`, Docker, Compose plugin),
-- clone your repository to `/opt/beer-rates` (or custom path),
-- deploy/redeploy the app using `scripts/proxmox-update.sh`.
-
-### Example
-
-```bash
-chmod +x scripts/proxmox-setup.sh
-sh ./scripts/proxmox-setup.sh --repo https://github.com/TheOriginalCER06/beer-rates.git --branch main
-```
-
----
-
-## Useful Docker commands
-
-```bash
-# View logs (including the first-run admin password)
-docker compose logs -f
-
-# Restart the app
-docker compose restart
-
-# Rebuild after a code change
-docker compose up -d --build
-
-# Stop and remove containers (data volume is preserved)
-docker compose down
-
-# Stop and ALSO delete all data
-docker compose down -v
-
-# Health check
-docker compose ps
-```
-
----
-
-## Proxmox one-command update script
-
-This repository includes a script that updates code and redeploys the app on your Proxmox LXC host.
-
-Script path:
-
-`scripts/proxmox-update.sh`
-
-### First-time setup on the server
-
-```bash
-cd /opt/beer-rates
-chmod +x scripts/proxmox-update.sh
-```
-
-### Run update
-
-```bash
-cd /opt/beer-rates
-sh ./scripts/proxmox-update.sh
-```
-
-### Useful options
-
-```bash
-# Update from a specific branch
-sh ./scripts/proxmox-update.sh --branch main
-
-# Restart without pulling new git commits
-sh ./scripts/proxmox-update.sh --no-pull
-
-# Pull latest code, but skip rebuild
-sh ./scripts/proxmox-update.sh --no-build
-```
-
-The script automatically:
-
-- verifies required tools (`docker`, compose, and `git` when pulling),
-- pulls latest code with fast-forward safety,
-- rebuilds and restarts containers,
-- prints final container status.
-
----
-
-## Weekly auto-update (CT upgrade + app update)
-
-Use the cron installer script to run weekly maintenance automatically:
-
-`scripts/install-weekly-auto-update.sh`
-
-It adds a weekly cron job that runs:
-
-`scripts/weekly-auto-update.sh`
-
-The weekly job does both:
-
-- upgrades the **Proxmox CT OS packages** (`apk update` + `apk upgrade` + cache cleanup),
-- updates and redeploys Beer Rates via `scripts/proxmox-update.sh`.
-
-### Install weekly cron job
-
-```bash
-cd /opt/beer-rates
-chmod +x scripts/*.sh
-sh ./scripts/install-weekly-auto-update.sh --app-dir /opt/beer-rates --branch main
-```
-
-Default schedule: **Sunday 04:30** (`30 4 * * 0`).
-
-### Custom schedule example
-
-```bash
-sh ./scripts/install-weekly-auto-update.sh --cron "0 3 * * 6"
-```
-
-### Check logs
-
-```bash
-tail -f /var/log/beerrates-weekly-update.log
-```
-
----
-
-## Data backup
-
-All data lives in the `drink_data` Docker volume. Back it up with:
-
-```bash
-docker run --rm \
-  -v beer-rates_drink_data:/data \
-  -v "$(pwd)":/backup \
-  alpine tar czf /backup/beer-rates-backup-$(date +%Y%m%d).tar.gz /data
-```
-
-Restore:
-
-```bash
-docker run --rm \
-  -v beer-rates_drink_data:/data \
-  -v "$(pwd)":/backup \
-  alpine tar xzf /backup/beer-rates-backup-20260601.tar.gz -C /
-```
-
----
-
-## Local development (no Docker)
-
-Requires Node.js 18 or later.
-
-**Terminal 1 — backend** (listens on port 3000):
-
-```bash
+# Backend (http://127.0.0.1:8000)
 cd backend
-npm install
-npm run dev        # nodemon auto-restarts on changes
+python -m venv .venv && .venv/Scripts/activate        # Linux/macOS: source .venv/bin/activate
+pip install -r requirements-dev.txt
+# ../.env with at least DJANGO_DEBUG=true
+python manage.py migrate && python manage.py createsuperuser
+python manage.py runserver
+python manage.py run_worker        # separate terminal; sends emails/pushes
+
+# Frontend (http://localhost:5173, proxies API calls and /media to :8000)
+cd frontend && npm install && npm run dev
 ```
 
-**Terminal 2 — frontend** (Vite dev server on port 5173):
+**Checks** (CI runs all of these, plus `docker compose build` and the Android build):
 
 ```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open `http://localhost:5173`. The Vite dev server proxies `/api` and `/photos` requests to the backend on port 3000.
-
-> **Note:** In dev mode `COOKIE_SECURE` is not set, so plain HTTP sessions work fine.
-
----
-
-## Environment variables
-
-Only three environment variables are used, all optional:
-
-| Variable | Default | Description |
-|---|---|---|
-| `PORT` | `3000` | Port the Express server listens on |
-| `NODE_ENV` | — | Set to `production` by the Dockerfile |
-| `COOKIE_SECURE` | `false` | Set to `true` when the app is accessed over HTTPS |
-
-Data is stored in `/app/data` (or `DATA_DIR` if overridden).
-
-> **No API keys are needed.** All four external drink databases (OpenBreweryDB, TheCocktailDB, Vivino, Open Food Facts) are free and use public endpoints. They are toggled on/off from the admin Settings page in the app.
-
----
-
-## External drink databases
-
-Look-ups are proxied through the backend (`/api/lookup`) and **cached in SQLite for 30 days**, so repeat searches cost zero API requests. On the Add/Edit form, expand **"Search online databases"** to search the sources matching the selected category. Tapping a result auto-fills name, brewery, style, ABV, country — and imports the product/cocktail image when available.
-
-| Source | Used for | Key needed |
-|---|---|---|
-| [OpenBreweryDB](https://www.openbrewerydb.org/) | Beer — brewery + country | No |
-| [TheCocktailDB](https://www.thecocktaildb.com/api.php) | Cocktails — thumbnails + ingredients | No (public key `1`) |
-| [Vivino](https://www.vivino.com/) | Wine — producer, region, vintage, photos | No (unofficial explore API) |
-| [Open Food Facts](https://world.openfoodfacts.org/) | Beer / Wine / Other — packaged products + photos | No |
-
-All four providers can be toggled individually (and via a master switch) from the admin **Settings → Online Drink Databases** section.
-
----
-
-## AI features
-
-All AI processing runs **entirely in the browser** (no server calls, no data leaves the device):
-
-| Feature | Technology | Description |
-|---|---|---|
-| **Drink detection** | TensorFlow.js COCO-SSD (mobilenet_v2) | Detects drink objects in the photo; auto-crops to centre the drink |
-| **Label OCR** | Tesseract.js | Reads brand name, ABV, and country from the label; auto-fills empty fields |
-| **Quality warnings** | Canvas pixel analysis | Warns if a photo is blurry (Laplacian variance) or too dark |
-| **Auto-enhance** | EXIF + Canvas | Fixes rotation, resizes to max 1600px, crops to 9:16 portrait |
-
-> **First use** downloads AI models (~50 MB), which are then cached by the browser. Subsequent uses are instant.
-
-Toggle all AI features from **Settings → AI Features** or the per-photo toggle on the add/edit form.
-
----
-
-## API reference
-
-All endpoints live under `/api`.
-
-### Auth
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/auth/config` | Public | Returns `{ publicView: bool }` |
-| `GET` | `/api/auth/me` | Session | Current user info |
-| `POST` | `/api/auth/login` | Public | Login (rate-limited: 15 req / 15 min) |
-| `POST` | `/api/auth/logout` | Session | Invalidate session |
-| `POST` | `/api/auth/change-password` | Session | Change own password |
-| `GET` | `/api/auth/users` | Admin | List all users |
-| `POST` | `/api/auth/users` | Admin | Create user |
-| `PUT` | `/api/auth/users/:id` | Admin | Update role or active status |
-| `POST` | `/api/auth/users/:id/reset-password` | Admin | Admin sets new password for any user |
-| `DELETE` | `/api/auth/users/:id` | Admin | Delete user (cannot delete `local_admin`) |
-
-#### Roles
-
-- **Admin**: full access, including user management and all drink actions.
-- **Contributor**: can create drinks and can edit/delete only drinks they created.
-- **Viewer**: read-only (cannot create/edit/delete drinks).
-
-#### Permission matrix
-
-| Action | Admin | Contributor | Viewer |
-|---|---|---|---|
-| Browse drinks / stats / calendar | ✅ | ✅ | ✅ |
-| Create drink | ✅ | ✅ | ❌ |
-| Edit own drink | ✅ | ✅ | ❌ |
-| Edit others' drinks | ✅ | ❌ | ❌ |
-| Delete own drink | ✅ | ✅ | ❌ |
-| Delete others' drinks | ✅ | ❌ | ❌ |
-| Manage users and settings | ✅ | ❌ | ❌ |
-
-### Drinks
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/drinks` | View | List drinks |
-| `GET` | `/api/drinks/stats` | View | Aggregated statistics |
-| `GET` | `/api/drinks/calendar` | View | Drinks grouped by date |
-| `GET` | `/api/drinks/export.csv` | View | Download all drinks as a UTF-8 CSV file |
-| `GET` | `/api/drinks/:id` | View | Single drink |
-| `POST` | `/api/drinks` | Admin / Contributor | Create drink |
-| `PUT` | `/api/drinks/:id` | Owner / Admin | Update drink (contributor only for own drinks) |
-| `DELETE` | `/api/drinks/:id` | Owner / Admin | Delete drink (also deletes photo; contributor only for own drinks) |
-| `POST` | `/api/drinks/:id/photo` | Owner / Admin | Upload / replace photo (contributor only for own drinks) |
-| `POST` | `/api/drinks/:id/photo-url` | Owner / Admin | Import photo from allowlisted URL (lookup results) |
-| `DELETE` | `/api/drinks/:id/photo` | Owner / Admin | Remove photo (contributor only for own drinks) |
-
-**"View"** = logged in, or public view is enabled.
-
-**"Owner / Admin"** = admin, or the contributor who originally created the drink.
-
-#### `GET /api/drinks` query parameters
-
-| Param | Example | Description |
-|---|---|---|
-| `search` | `pale` | Search name, brewery, and notes |
-| `category` | `Beer` | `Beer`, `Wine`, `Cocktail`, `Alcohol Free`, `Other` |
-| `style` | `Stout` | Exact style match |
-| `minRating` | `7` | Minimum rating (inclusive) |
-| `maxRating` | `10` | Maximum rating (inclusive) |
-| `mine` | `1` | When logged in, limit to drinks you created |
-| `sort` | `rating` | `created_at`, `date_tried`, `rating`, `name`, `category` |
-| `order` | `desc` | `asc` or `desc` |
-
-Drink objects include `created_by_name` (the username of whoever added the entry, or `null`).
-
-#### `GET /api/drinks/calendar` query parameters
-
-| Param | Example | Description |
-|---|---|---|
-| `year` | `2026` | Year (defaults to current) |
-| `month` | `6` | Month 1–12 (defaults to current) |
-
-Returns `{ "YYYY-MM-DD": [ ...drinks ] }`.
-
-### Settings
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/settings` | Admin | Get all settings |
-| `PUT` | `/api/settings` | Admin | Update settings |
-
-Settings keys: `public_view`, `lookup_enabled`, `lookup_openbrewerydb`, `lookup_thecocktaildb`, `lookup_vivino`, `lookup_openfoodfacts` (all boolean).
-
-### Look-up (external databases)
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/lookup?category=&q=` | Login | Search external drink DBs (cached); returns normalised results |
-| `GET` | `/api/lookup/providers` | Public | Which sources are active |
-
-### Photos
-
-```
-GET /photos/:filename
-```
-
-Auth-aware static file serving. Returns 401 if not logged in and public view is off.
-
----
-
-## Project structure
-
-```
-beer-rates/
-├── backend/
-│   ├── src/
-│   │   ├── server.js              # Express entry — sessions, CSP, routing
-│   │   ├── db.js                  # SQLite setup, migrations, first-run admin
-│   │   ├── lookup.js              # External API proxy + SQLite cache
-│   │   ├── middleware/
-│   │   │   └── auth.js            # requireView / requireLogin / requireAdmin
-│   │   └── routes/
-│   │       ├── auth.js            # Login, logout, user management
-│   │       ├── drinks.js          # CRUD + photo upload/import + stats + calendar + CSV
-│   │       ├── lookup.js          # GET /api/lookup (search) + /api/lookup/providers
-│   │       └── settings.js        # Admin settings (toggles for public view + providers)
-│   └── package.json
-├── frontend/
-│   ├── src/
-│   │   ├── main.jsx               # React root + MUI ThemeProvider
-│   │   ├── App.jsx                # Router, auth gate, route map
-│   │   ├── AuthContext.jsx        # Global auth state (user, publicView)
-│   │   ├── theme.js               # MUI dark theme definition
-│   │   ├── constants.js           # Categories, icons, colours, styles, containers
-│   │   ├── utils/
-│   │   │   ├── imageCompress.js   # Canvas pipeline: orient → resize → crop → compress
-│   │   │   ├── imageExif.js       # EXIF rotation helpers (piexifjs, lightweight)
-│   │   │   ├── imageDetection.js  # TF.js + Tesseract (lazy-loaded, code-split ~1.9 MB)
-│   │   │   └── aiSettings.js      # localStorage-backed AI toggles + React hook
-│   │   └── components/
-│   │       ├── Navbar.jsx         # AppBar + mobile Drawer
-│   │       ├── LoginPage.jsx      # Full-screen login
-│   │       ├── DrinkList.jsx      # List with category tabs, filters, search, CSV export
-│   │       ├── DrinkCard.jsx      # Card with photo, rating badge, category chip
-│   │       ├── DrinkForm.jsx      # Add/Edit form with photo upload + AI detection
-│   │       ├── DrinkLookup.jsx    # External database search (collapsible, in DrinkForm)
-│   │       ├── DrinkDetail.jsx    # Detail view with hero photo + fullscreen modal
-│   │       ├── CalendarView.jsx   # Monthly calendar grid
-│   │       ├── StatsView.jsx      # KPIs, charts, top lists
-│   │       ├── SettingsPage.jsx   # Access, AI, database toggles, password, users
-│   │       ├── ConfirmDialog.jsx  # Reusable MUI confirmation dialog
-│   │       ├── PasswordInput.jsx  # TextField with show/hide toggle
-│   │       ├── RatingBadge.jsx    # Coloured Avatar showing 1–10 rating
-│   │       └── RatingPicker.jsx   # 10 clickable circle buttons for rating input
-│   ├── index.html
-│   ├── vite.config.js
-│   └── package.json
-├── Dockerfile                     # Multi-stage: Vite build → Node Alpine
-├── docker-compose.yml
-├── scripts/
-│   ├── proxmox-setup.sh          # First-time Proxmox/LXC bootstrap + deploy helper
-│   ├── proxmox-update.sh         # App update helper (git pull + compose up)
-│   ├── weekly-auto-update.sh     # Weekly CT upgrade + app update runner
-│   └── install-weekly-auto-update.sh # Installs weekly cron job for auto-updates
-├── .dockerignore
-└── .gitignore
-```
-
----
-
-## Database schema
-
-The SQLite database is stored at `/app/data/beers.db` inside the container.
-
-```sql
--- Drinks
-CREATE TABLE beers (
-  id              INTEGER PRIMARY KEY AUTOINCREMENT,
-  name            TEXT    NOT NULL,
-  brewery         TEXT,
-  style           TEXT,
-  abv             REAL,
-  country         TEXT,
-  category        TEXT    NOT NULL DEFAULT 'Beer',
-  container       TEXT,                          -- Bottle / Can / Draft / Cask / Growler / Other
-  rating          INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 10),
-  comment         TEXT,
-  location        TEXT,
-  date_tried      TEXT    NOT NULL DEFAULT (date('now')),
-  would_buy_again INTEGER NOT NULL DEFAULT 0,
-  created_by      INTEGER,                       -- → users.id
-  photo_path      TEXT,
-  created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
-);
-
--- Users
-CREATE TABLE users (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  username   TEXT    NOT NULL UNIQUE COLLATE NOCASE,
-  password   TEXT    NOT NULL,          -- bcrypt hash
-  role       TEXT    NOT NULL DEFAULT 'viewer',  -- 'admin' | 'contributor' | 'viewer'
-  active     INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT    NOT NULL DEFAULT (datetime('now'))
-);
-
--- Settings (key/value)
-CREATE TABLE settings (
-  key   TEXT PRIMARY KEY,
-  value TEXT NOT NULL
-  -- Keys: public_view, session_secret,
-  --       lookup_enabled, lookup_openbrewerydb,
-  --       lookup_thecocktaildb, lookup_vivino, lookup_openfoodfacts
-);
-
--- Sessions (express-session SQLite store)
-CREATE TABLE sessions (
-  sid     TEXT PRIMARY KEY,
-  data    TEXT NOT NULL,
-  expires TEXT NOT NULL
-);
-
--- External API response cache (30-day TTL)
-CREATE TABLE lookup_cache (
-  key        TEXT PRIMARY KEY,
-  body       TEXT NOT NULL,
-  expires_at INTEGER NOT NULL
-);
+cd backend && python manage.py test && ruff check . && ruff format --check .
+cd frontend && npm run lint && npm run build
+cd docs && npm run build
 ```

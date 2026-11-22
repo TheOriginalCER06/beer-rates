@@ -1,0 +1,8 @@
+{% extends "emails/layout.html" %}
+{% block title %}Ny bruker: {{ new_user.username }}{% endblock %}
+{% block content %}
+<p><strong>{{ new_user.username }}</strong>{% if new_user.email %} ({{ new_user.email }}){% endif %} har laget en konto i Beer Rates.</p>
+<p>{% if new_user.is_approved %}Kontoen er allerede aktiv (godkjenning er slått av).{% else %}Kontoen venter på godkjenning.{% endif %}</p>
+<p style="margin:24px 0;"><a href="{{ site_url }}/manage?tab=users" style="background:#f59e0b;color:#2b1d0e;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:8px;display:inline-block;">Åpne brukere</a></p>
+<p style="color:#7a6650;font-size:13px;">Du kan slå av disse e-postene under Profil.</p>
+{% endblock %}
