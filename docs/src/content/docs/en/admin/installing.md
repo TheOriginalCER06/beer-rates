@@ -19,18 +19,20 @@ Photos are in the Docker volume `beer-rates_media`, the database in `beer-rates_
 
 ## 1. The CT
 
-The old app already runs in the CT at **192.168.20.234** (Alpine, Docker, `/opt/beer-rates`, port 3000), and the reverse proxy for `øl.cer06.no` already points there. The simplest is to keep using it:
+The old app already runs in **CT 213** (`beerrates` on `pve2`, 192.168.20.234: Alpine, Docker, `/opt/beer-rates`, port 3000), and NPMPlus forwards `øl.cer06.no` there. The simplest is to keep using it.
+
+Deploys log in with a key of their own, `~/.ssh/beerrates_deploy` on your PC (`ssh-keygen -t ed25519 -N "" -C beerrates-deploy-key -f ~/.ssh/beerrates_deploy`), which `scripts/deploy.sh` uses automatically. In the CT's console (Proxmox: **pve2 → 213 → Console**):
 
 ```bash
-# In the CT (Proxmox console: pct enter <CTID>)
 apk add --no-cache bash openssh openssl curl git
 rc-update add sshd default && rc-service sshd start
-mkdir -p ~/.ssh && chmod 700 ~/.ssh
-# Paste your PC's public key (e.g. ~/.ssh/id_ed25519.pub) into:
-vi ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
+mkdir -p /root/.ssh && chmod 700 /root/.ssh
+# The deploy key, only from your PC (192.168.50.88) and the VPN ranges, without port or agent forwarding:
+echo 'restrict,pty,from="192.168.50.88,192.168.10.*,192.168.2.*" ssh-ed25519 AAAA… beerrates-deploy-key' >> /root/.ssh/authorized_keys
+chmod 600 /root/.ssh/authorized_keys
 ```
 
-`bash` is needed by the scripts, and SSH by `scripts/deploy.sh`. Give the CT **2 GB RAM** while images are built (`npm ci` and Vite).
+`bash` is needed by the scripts, and SSH by `scripts/deploy.sh`. To take the access away again, delete that line. Give the CT **2 GB RAM** while images are built (`npm ci` and Vite), and turn on **Options → Start at boot**, or the site stays down after a reboot of `pve2`.
 
 :::note[A fresh Debian 13 CT instead?]
 Follow BLAP's guide (Debian 13, unprivileged, `nesting` + `keyctl`, Docker from docker.com), give it the address 192.168.20.234 after shutting the old CT down, and copy the old data over as a file: on the old CT, `docker run --rm -v beer-rates_drink_data:/data -v /root:/out alpine tar czf /out/old-data.tar.gz -C /data .`, then `scp` it to the new CT and use it in step 4.
@@ -57,7 +59,7 @@ Set at least `DJANGO_SECRET_KEY`, `POSTGRES_PASSWORD`, `DJANGO_SUPERUSER_PASSWOR
 scripts/update.sh
 ```
 
-The first time, it stops and removes the old app's container (its data volume `beer-rates_drink_data` is kept) and deletes the old auto-update cron job, then builds and starts everything. The new app listens on port 3000 like the old one, so the reverse proxy needs no change.
+The first time, it deletes the old app's Sunday auto-update cron job and builds the new images while the old app keeps running. Only then does it stop and remove the old app's container (its data volume `beer-rates_drink_data` is kept) and start the new one, so the site is down for about a minute. The new app listens on port 3000 like the old one, so the reverse proxy needs no change.
 
 ## 4. Import the old data
 

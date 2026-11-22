@@ -64,21 +64,14 @@ else
     step "Version unchanged ($NEW_VERSION)"
 fi
 
-# The old Node app: one container (service "app") on port 3000, and a cron job that pulled and
-# rebuilt it. Its data volume is kept for scripts/import-old.sh.
-old_app="$(docker ps -q --filter label=com.docker.compose.project=beer-rates --filter label=com.docker.compose.service=app)"
-if [ -n "$old_app" ]; then
-    step "Stopping the old Node.js app (its data stays in the volume beer-rates_drink_data)"
-    docker stop "$old_app" >/dev/null
-    docker rm "$old_app" >/dev/null
-fi
+# The old Node app had a cron job that pulled and rebuilt it every Sunday; it would fight this script.
 if command -v crontab >/dev/null && crontab -l 2>/dev/null | grep -q beerrates-weekly-auto-update; then
     step "Removing the old app's auto-update cron job"
     crontab -l | grep -v beerrates-weekly-auto-update | crontab -
 fi
 
 # One image at a time: building the app and the docs in parallel (two npm installs) can
-# exhaust the memory of a small CT.
+# exhaust the memory of a small CT. The site keeps running while this happens.
 step "Building images"
 services="$(docker compose config --services)"
 for service in backend web docs; do
@@ -86,6 +79,16 @@ for service in backend web docs; do
         docker compose build "$service"
     fi
 done
+
+# The old Node app (service "app", port 3000) is stopped only now that the new images are built, so
+# the site is down for about a minute rather than the whole build. Its data volume stays for
+# scripts/import-old.sh.
+old_app="$(docker ps -q --filter label=com.docker.compose.project=beer-rates --filter label=com.docker.compose.service=app)"
+if [ -n "$old_app" ]; then
+    step "Stopping the old Node.js app (its data stays in the volume beer-rates_drink_data)"
+    docker stop "$old_app" >/dev/null
+    docker rm "$old_app" >/dev/null
+fi
 
 step "Restarting"
 docker compose up -d --wait --remove-orphans

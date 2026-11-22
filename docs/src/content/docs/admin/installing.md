@@ -9,16 +9,20 @@ Appen kjører som Docker Compose-containere i en Proxmox-CT, som BLAP: `web` (ng
 
 ## 1. CT-en
 
-Den gamle appen kjører allerede i CT-en på **192.168.20.234** (Alpine, Docker, `/opt/beer-rates`, port 3000), og reverse proxyen for `øl.cer06.no` peker dit. Enklest er å bruke den videre:
+Den gamle appen kjører allerede i **CT 213** (`beerrates` på `pve2`, 192.168.20.234: Alpine, Docker, `/opt/beer-rates`, port 3000), og NPMPlus sender `øl.cer06.no` dit. Enklest er å bruke den videre.
+
+Utrullinger logger inn med en egen nøkkel, `~/.ssh/beerrates_deploy` på PC-en (`ssh-keygen -t ed25519 -N "" -C beerrates-deploy-key -f ~/.ssh/beerrates_deploy`), som `scripts/deploy.sh` bruker av seg selv. I CT-ens konsoll (Proxmox: **pve2 → 213 → Console**):
 
 ```bash
 apk add --no-cache bash openssh openssl curl git
 rc-update add sshd default && rc-service sshd start
-mkdir -p ~/.ssh && chmod 700 ~/.ssh
-vi ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys   # lim inn PC-ens offentlige nøkkel
+mkdir -p /root/.ssh && chmod 700 /root/.ssh
+# Utrullingsnøkkelen, bare fra PC-en (192.168.50.88) og VPN-nettene, uten port- eller agent-videresending:
+echo 'restrict,pty,from="192.168.50.88,192.168.10.*,192.168.2.*" ssh-ed25519 AAAA… beerrates-deploy-key' >> /root/.ssh/authorized_keys
+chmod 600 /root/.ssh/authorized_keys
 ```
 
-Skriptene trenger `bash`, og `scripts/deploy.sh` trenger SSH. Gi CT-en **2 GB RAM** mens bildene bygges.
+Skriptene trenger `bash`, og `scripts/deploy.sh` trenger SSH. Slett linjen for å fjerne tilgangen igjen. Gi CT-en **2 GB RAM** mens bildene bygges, og slå på **Options → Start at boot**, ellers er siden nede etter en omstart av `pve2`.
 
 :::note[Ny Debian 13-CT i stedet?]
 Følg BLAP-veiledningen, gi den adressen 192.168.20.234 etter at den gamle er slått av, og kopier gamle data som fil: på den gamle CT-en `docker run --rm -v beer-rates_drink_data:/data -v /root:/out alpine tar czf /out/old-data.tar.gz -C /data .`, `scp` filen over og bruk den i steg 4.
@@ -43,7 +47,7 @@ Sett minst `DJANGO_SECRET_KEY`, `POSTGRES_PASSWORD`, `DJANGO_SUPERUSER_PASSWORD`
 scripts/update.sh
 ```
 
-Første gang stopper og fjerner den den gamle appens container (datavolumet `beer-rates_drink_data` beholdes) og den gamle cron-jobben for automatisk oppdatering, og bygger og starter alt. Den nye appen lytter på port 3000 som før, så proxyen trenger ingen endring.
+Første gang sletter den den gamle cron-jobben for automatisk oppdatering på søndager, og bygger de nye bildene mens den gamle appen fortsatt kjører. Først da stopper og fjerner den den gamle appens container (datavolumet `beer-rates_drink_data` beholdes) og starter den nye, så siden er nede i omtrent ett minutt. Den nye appen lytter på port 3000 som før, så proxyen trenger ingen endring.
 
 ## 4. Importer gamle data
 
