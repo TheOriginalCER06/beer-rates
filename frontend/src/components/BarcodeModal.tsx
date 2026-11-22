@@ -21,13 +21,21 @@ export function BarcodeModal({ opened, onClose, onCode }: Props) {
   const [starting, setStarting] = useState(true)
   const [typed, setTyped] = useState('')
 
+  // Each time it opens, start without the previous error (reset while rendering, not in the effect).
+  const [wasOpened, setWasOpened] = useState(opened)
+  if (opened !== wasOpened) {
+    setWasOpened(opened)
+    if (opened) {
+      setError(null)
+      setStarting(true)
+    }
+  }
+
   useEffect(() => {
     if (!opened) return
     let stream: MediaStream | null = null
     let timer = 0
     let stopped = false
-    setError(null)
-    setStarting(true)
     const run = async () => {
       try {
         const detector = await getDetector()

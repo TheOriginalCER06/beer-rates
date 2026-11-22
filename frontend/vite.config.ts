@@ -16,11 +16,12 @@ export default defineConfig({
         // loaded when used.
         codeSplitting: {
           groups: [
-            { name: 'react', test: /node_modules[\/](react|react-dom|scheduler|react-router)[\/]/, priority: 30 },
-            { name: 'mantine', test: /node_modules[\/]@mantine[\/]/, priority: 20 },
-            { name: 'apollo', test: /node_modules[\/](@apollo|graphql|@wry|optimism|rxjs|tslib)[\/]/, priority: 20 },
-            { name: 'icons', test: /node_modules[\/]@tabler[\/]/, priority: 20 },
-            { name: 'capacitor', test: /node_modules[\/]@capacitor[\/]/, priority: 20 },
+            // [\\/]: module paths use / on Linux and \ on Windows.
+            { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler|react-router)[\\/]/, priority: 30 },
+            { name: 'mantine', test: /node_modules[\\/]@mantine[\\/]/, priority: 20 },
+            { name: 'apollo', test: /node_modules[\\/](@apollo|graphql|@wry|optimism|rxjs|tslib)[\\/]/, priority: 20 },
+            { name: 'icons', test: /node_modules[\\/]@tabler[\\/]/, priority: 20 },
+            { name: 'capacitor', test: /node_modules[\\/]@capacitor[\\/]/, priority: 20 },
           ],
         },
       },

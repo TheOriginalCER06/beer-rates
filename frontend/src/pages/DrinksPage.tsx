@@ -18,7 +18,7 @@ import {
 } from '@mantine/core'
 import { useDebouncedValue, useIntersection } from '@mantine/hooks'
 import { IconAdjustments, IconPlus, IconSearch, IconX } from '@tabler/icons-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router'
 import { DrinkCard } from '../components/DrinkCard'
@@ -72,11 +72,13 @@ export function DrinksPage() {
   const items = data?.drinks.items ?? []
 
   // Load the next page when the end of the list comes into view.
+  // `loading` already covers this fetch (notifyOnNetworkStatusChange); the ref only stops a second
+  // request for the same page while the first is on its way.
   const { ref: endRef, entry } = useIntersection({ rootMargin: '400px' })
-  const [loadingMore, setLoadingMore] = useState(false)
+  const fetchingMore = useRef(false)
   useEffect(() => {
-    if (!entry?.isIntersecting || !data?.drinks.hasMore || loadingMore) return
-    setLoadingMore(true)
+    if (!entry?.isIntersecting || !data?.drinks.hasMore || fetchingMore.current) return
+    fetchingMore.current = true
     void fetchMore({
       variables: { offset: items.length },
       updateQuery: (prev, { fetchMoreResult }) => ({
@@ -85,8 +87,10 @@ export function DrinksPage() {
           items: [...prev.drinks.items, ...fetchMoreResult.drinks.items],
         },
       }),
-    }).finally(() => setLoadingMore(false))
-  }, [entry?.isIntersecting, data?.drinks.hasMore, items.length, fetchMore, loadingMore])
+    }).finally(() => {
+      fetchingMore.current = false
+    })
+  }, [entry?.isIntersecting, data?.drinks.hasMore, items.length, fetchMore])
 
   // Pull to refresh isn't available in a WebView; refresh when returning to the app instead.
   useEffect(() => {
@@ -156,7 +160,7 @@ export function DrinksPage() {
         <DrinkCard key={drink.id} drink={drink} />
       ))}
       <div ref={endRef} />
-      {(loading || loadingMore) && (
+      {loading && (
         <Center py="md">
           <Loader size="sm" />
         </Center>

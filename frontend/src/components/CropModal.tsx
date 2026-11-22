@@ -29,11 +29,15 @@ export function CropModal({ photo, onCancel, onDone }: Props) {
   const [natural, setNatural] = useState<number>(4 / 5)
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
+  // A new photo starts uncropped. Reset while rendering (React's pattern for state that follows a
+  // prop), not in an effect, which would first render the old crop on the new photo.
+  const [shownPhoto, setShownPhoto] = useState(photo)
+  if (photo !== shownPhoto) {
+    setShownPhoto(photo)
     setPosition({ x: 0, y: 0 })
     setZoom(1)
     setRotation(0)
-  }, [photo])
+  }
 
   const sideways = rotation % 180 !== 0
   const aspect = ASPECTS[aspectKey] ?? (sideways ? 1 / natural : natural)
