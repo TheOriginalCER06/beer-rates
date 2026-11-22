@@ -128,11 +128,13 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
-      - uses: android-actions/setup-android@v3
+      # The Ubuntu runner already has the Android SDK ($ANDROID_HOME) with its licences accepted, and
+      # Gradle fetches any missing platform itself. (android-actions/setup-android@v3 broke when Google
+      # removed the old `tools` package.)
       - run: npm ci
       - name: Firebase (push notifications), if set up
         if: env.GOOGLE_SERVICES_JSON != ''
